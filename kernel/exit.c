@@ -77,10 +77,6 @@
 #include <linux/reserve_area.h>
 #endif
 
-#ifdef CONFIG_OPLUS_FEATURE_UID_PERF
-extern void uid_check_out_pevent(struct task_struct *task);
-#endif
-
 /*
  * The default value should be high enough to not crash a system that randomly
  * crashes its kernel from time to time, but low enough to at least not permit
@@ -905,10 +901,6 @@ void __noreturn do_exit(long code)
 
 	exit_signals(tsk);  /* sets PF_EXITING */
 	sched_exit(tsk);
-
-#ifdef CONFIG_OPLUS_FEATURE_UID_PERF
-	uid_check_out_pevent(tsk);
-#endif
 
 	/* sync mm's RSS info before statistics gathering */
 	if (tsk->mm)
