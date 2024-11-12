@@ -13813,8 +13813,16 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		break;
 #endif
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+#ifdef OPLUS_FEATURE_CHG_BASIC
+		if (g_oplus_chip) {
+			val->intval = oplus_gauge_get_batt_fcc() * 1000 * g_oplus_chip->vbatt_num;
+		} else {
+			val->intval = -ENODATA;
+		}
+#else
 		rc = smblib_get_prop_from_bms(chg,
 				POWER_SUPPLY_PROP_CHARGE_FULL, val);
+#endif
 		break;
 	case POWER_SUPPLY_PROP_FORCE_RECHARGE:
 		val->intval = 0;
