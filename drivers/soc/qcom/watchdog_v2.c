@@ -74,6 +74,7 @@ static dma_addr_t log_buf_paddr;
 #endif
 
 static struct msm_watchdog_data *wdog_data;
+
 #ifndef OPLUS_BUG_STABILITY
 /*use self-defined utils*/
 static int cpu_idle_pc_state[NR_CPUS];
@@ -434,6 +435,7 @@ static void ping_other_cpus(struct msm_watchdog_data *wdog_dd)
 	cpumask_t mask;
 	get_cpu_ping_mask(&mask);
 #endif /*OPLUS_BUG_STABILITY*/
+
 	cpumask_clear(&wdog_dd->alive_mask);
 	/* Make sure alive mask is cleared and set in order */
 	smp_mb();
@@ -811,6 +813,7 @@ static irqreturn_t wdog_bark_handler(int irq, void *dev_id)
 	print_smp_call_cpu();
 	dump_wdog_cpu(wdog_dd->watchdog_task);
 #endif
+
 #ifdef OPLUS_BUG_STABILITY
 /*delete trigger wdog bite, panic will trigger wdog if in dload mode*/
 	panic("Handle a watchdog bite! - Falling back to kernel panic!");
@@ -1107,11 +1110,11 @@ static int msm_watchdog_probe(struct platform_device *pdev)
 		pr_info("Failed to add Watchdog data in Minidump\n");
 
 #ifdef OPLUS_BUG_STABILITY
-        /* Add for init oplus watch dog log, checklist 64*/
+	/* Add for init oplus watch dog log, checklist 64*/
 	ret = init_oplus_watchlog();
-    if (ret < 0) {
-    	pr_info("Failed to init oplus watchlog");
-    }
+	if (ret < 0) {
+		pr_info("Failed to init oplus watchlog");
+	}
 #endif
 
 	return 0;

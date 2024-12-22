@@ -40,10 +40,6 @@
 #include "codecs/bolero/wsa-macro.h"
 #include "kona-port-config.h"
 
-#ifdef CONFIG_SND_SOC_SIA81XX
-#include "../../../../oplus/kernel_4.19/audio/codecs/sia81xx/sia81xx_aux_dev_if.h"
-#endif /* OPLUS_SND_SOC_SIA81XX */
-
 #ifdef OPLUS_BUG_COMPATIBILITY
 #include <linux/regulator/consumer.h>
 #endif /* OPLUS_BUG_COMPATIBILITY */
@@ -339,11 +335,7 @@ static struct afe_clk_set mi2s_clk[MI2S_MAX] = {
 static struct afe_clk_set mi2s_mclk[MI2S_MAX] = {
 	{
 		AFE_API_VERSION_I2S_CONFIG,
-		#ifdef OPLUS_FEATURE_PLATFORM_LITO
-		Q6AFE_LPASS_CLK_ID_MCLK_3,
-		#else
 		Q6AFE_LPASS_CLK_ID_MCLK_1,
-		#endif/*OPLUS_FEATURE_PLATFORM_LITO*/
 		Q6AFE_LPASS_OSR_CLK_9_P600_MHZ,
 		Q6AFE_LPASS_CLK_ATTRIBUTE_COUPLE_NO,
 		Q6AFE_LPASS_CLK_ROOT_DEFAULT,
@@ -1050,7 +1042,6 @@ static void param_set_mask(struct snd_pcm_hw_params *p, int n,
 		m->bits[bit >> 5] |= (1 << (bit & 31));
 	}
 }
-
 
 #ifdef OPLUS_BUG_COMPATIBILITY
 static int g_bob_mode = REGULATOR_MODE_NORMAL;
@@ -5467,11 +5458,7 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 
 		#ifdef OPLUS_ARCH_EXTENDS
 		if ((!mi2s_intf_conf[index].msm_is_mi2s_master)
-				#ifndef OPLUS_FEATURE_PLATFORM_LITO
 				&& (index == PRIM_MI2S)) {
-				#else
-				&& (index == SEC_MI2S)) {
-				#endif/*OPLUS_FEATURE_PLATFORM_LITO*/
 			ret = snd_soc_dai_set_fmt(rtd->codec_dai, fmt | SND_SOC_DAIFMT_I2S);
 			if (ret < 0) {
 				pr_warn("%s: set codec fmt fail, ret=%d \n", __func__, ret);
@@ -5745,9 +5732,7 @@ static int msm_dmic_event(struct snd_soc_dapm_widget *w,
 			if (ret < 0) {
 				pr_err("%s: gpio set cannot be activated %sd",
 					__func__, "dmic_gpio");
-				#ifndef OPLUS_FEATURE_PLATFORM_LITO
 				return ret;
-				#endif
 			}
 		}
 
@@ -5760,9 +5745,7 @@ static int msm_dmic_event(struct snd_soc_dapm_widget *w,
 			if (ret < 0) {
 				pr_err("%s: gpio set cannot be de-activated %sd",
 					__func__, "dmic_gpio");
-				#ifndef OPLUS_FEATURE_PLATFORM_LITO
 				return ret;
-				#endif
 			}
 		}
 		break;
@@ -5856,12 +5839,10 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_card *card;
 	struct snd_info_entry *entry;
 	struct snd_soc_component *aux_comp;
-#ifndef OPLUS_FEATURE_PLATFORM_LITO
 	struct platform_device *pdev = NULL;
 	int i = 0;
 	bool is_wcd937x_used = false;
 	char *data = NULL;
-#endif
 	struct msm_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(rtd->card);
 
@@ -5924,7 +5905,6 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	 */
 	dev_dbg(component->dev, "%s: Number of aux devices: %d\n",
 		__func__, rtd->card->num_aux_devs);
-	#ifndef OPLUS_ARCH_EXTENDS
 	if (rtd->card->num_aux_devs &&
 	    !list_empty(&rtd->card->component_dev_list)) {
 		list_for_each_entry(aux_comp,
@@ -5945,7 +5925,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 			}
 		}
 	}
-    
+
 	for (i = 0; i < rtd->card->num_aux_devs; i++)
 	{
 		if (msm_aux_dev[i].name != NULL ) {
@@ -5969,61 +5949,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 			}
 		}
 	}
-         if (is_wcd937x_used) {
-		bolero_set_port_map(component,
-				    ARRAY_SIZE(sm_port_map_wcd937x),
-				    sm_port_map_wcd937x);
-	} else if (pdata->lito_v2_enabled) {
-		/*
-		 * Enable tx data line3 for saipan version v2 and
-		 * write corresponding lpi register.
-		 */
-		bolero_set_port_map(component, ARRAY_SIZE(sm_port_map_v2),
-				    sm_port_map_v2);
-	} else {
-		bolero_set_port_map(component, ARRAY_SIZE(sm_port_map),
-				    sm_port_map);
-	}
-	#else /*OPLUS_ARCH_EXTENDS*/
-	#ifndef OPLUS_FEATURE_PLATFORM_LITO
-	if (rtd->card->num_aux_devs &&
-	    !list_empty(&rtd->card->component_dev_list)) {
-		list_for_each_entry(aux_comp,
-				&rtd->card->aux_comp_list,
-				card_aux_list) {
-			if (aux_comp->name != NULL && (
-				!strcmp(aux_comp->name, WSA8810_NAME_1) ||
-		    		!strcmp(aux_comp->name, WSA8810_NAME_2))) {
-				wsa_macro_set_spkr_mode(component,
-						WSA_MACRO_SPKR_MODE_1);
-				wsa_macro_set_spkr_gain_offset(component,
-						WSA_MACRO_GAIN_OFFSET_M1P5_DB);
-			}
-		}
-	}
-         for (i = 0; i < rtd->card->num_aux_devs; i++)
-	{
-		if (msm_aux_dev[i].name != NULL ) {
-			if (strstr(msm_aux_dev[i].name, "wsa"))
-				continue;
-		}
 
-		if (msm_aux_dev[i].codec_of_node) {
-			pdev = of_find_device_by_node(
-					msm_aux_dev[i].codec_of_node);
-
-			if (pdev)
-				data = (char*) of_device_get_match_data(
-								&pdev->dev);
-			if (data != NULL) {
-				if (!strncmp(data, "wcd937x",
-						sizeof("wcd937x"))) {
-					is_wcd937x_used = true;
-					break;
-				}
-			}
-		}
-	}
 	if (is_wcd937x_used) {
 		bolero_set_port_map(component,
 				    ARRAY_SIZE(sm_port_map_wcd937x),
@@ -6039,26 +5965,6 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		bolero_set_port_map(component, ARRAY_SIZE(sm_port_map),
 				    sm_port_map);
 	}
-	#else /* OPLUS_FEATURE_PLATFORM_LITO */
-	if (rtd->card->num_aux_devs &&
-	    !list_empty(&rtd->card->component_dev_list)) {
-		list_for_each_entry(aux_comp,
-				&rtd->card->aux_comp_list,
-				card_aux_list) {
-			if (aux_comp->name != NULL && (
-				  !strcmp(aux_comp->name, WSA8810_NAME_1) ||
-				  !strcmp(aux_comp->name, WSA8810_NAME_2))) {
-				wsa_macro_set_spkr_mode(component,
-						WSA_MACRO_SPKR_MODE_1);
-				wsa_macro_set_spkr_gain_offset(component,
-						WSA_MACRO_GAIN_OFFSET_M1P5_DB);
-			}
-		}
-		bolero_set_port_map(component, ARRAY_SIZE(sm_port_map),
-				    sm_port_map);
-	}
-	#endif /* OPLUS_FEATURE_PLATFORM_LITO */
-  	#endif /*OPLUS_ARCH_EXTENDS*/
 
 	card = rtd->card->snd_card;
 	if (!pdata->codec_root) {
@@ -6865,7 +6771,6 @@ static struct snd_soc_dai_link msm_common_be_dai_links[] = {
 		.ignore_suspend = 1,
 		.ignore_pmdown_time = 1,
 	},
-	#ifndef OPLUS_FEATURE_PLATFORM_LITO
 	/* Proxy Tx BACK END DAI Link */
 	{
 		.name = LPASS_BE_PROXY_TX,
@@ -6893,7 +6798,6 @@ static struct snd_soc_dai_link msm_common_be_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		.ignore_suspend = 1,
 	},
-	#endif/*OPLUS_FEATURE_PLATFORM_LITO*/
 	{
 		.name = LPASS_BE_USB_AUDIO_RX,
 		.stream_name = "USB Audio Playback",
@@ -7592,9 +7496,7 @@ static struct snd_soc_dai_link msm_wsa_cdc_dma_be_dai_links[] = {
 		.codec_dai_name = "wsa_macro_rx1",
 		.no_pcm = 1,
 		.dpcm_playback = 1,
-		#ifndef OPLUS_FEATURE_PLATFORM_LITO
 		.init = &msm_int_audrx_init,
-		#endif /* OPLUS_FEATURE_PLATFORM_LITO */
 		.id = MSM_BACKEND_DAI_WSA_CDC_DMA_RX_0,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ignore_pmdown_time = 1,
@@ -7739,9 +7641,6 @@ static struct snd_soc_dai_link msm_va_cdc_dma_be_dai_links[] = {
 		.codec_dai_name = "va_macro_tx1",
 		.no_pcm = 1,
 		.dpcm_capture = 1,
-		#ifdef OPLUS_FEATURE_PLATFORM_LITO
-		.init = &msm_int_audrx_init,
-		#endif /* OPLUS_FEATURE_PLATFORM_LITO */
 		.id = MSM_BACKEND_DAI_VA_CDC_DMA_TX_0,
 		.be_hw_params_fixup = msm_be_hw_params_fixup,
 		.ignore_suspend = 1,
@@ -8012,12 +7911,6 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 	u32 auxpcm_audio_intf = 0;
 	u32 val = 0;
 	u32 wcn_btfm_intf = 0;
-	#ifdef OPLUS_ARCH_EXTENDS
-	#ifdef OPLUS_FEATURE_PLATFORM_LITO
-	u32 wsa_bolero_codec = 0;
-	#endif /* OPLUS_FEATURE_PLATFORM_LITO */
-	#endif /* OPLUS_ARCH_EXTENDS */
-
 	const struct of_device_id *match;
 
 	match = of_match_node(kona_asoc_machine_of_match, dev->of_node);
@@ -8035,31 +7928,11 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		       sizeof(msm_common_dai_links));
 		total_links += ARRAY_SIZE(msm_common_dai_links);
 
-		#ifndef OPLUS_FEATURE_PLATFORM_LITO
 		memcpy(msm_kona_dai_links + total_links,
 		       msm_bolero_fe_dai_links,
 		       sizeof(msm_bolero_fe_dai_links));
 		total_links +=
 			ARRAY_SIZE(msm_bolero_fe_dai_links);
-		#else /* OPLUS_FEATURE_PLATFORM_LITO */
-		rc = of_property_read_u32(dev->of_node, "qcom,wsa-bolero-codec",
-					  &wsa_bolero_codec);
-		if (rc) {
-			dev_dbg(dev, "%s: No DT match WSA Macro codec\n",
-				__func__);
-		} else {
-			if (wsa_bolero_codec) {
-				dev_dbg(dev, "%s(): WSA macro in bolero codec present\n",
-					__func__);
-
-				memcpy(msm_kona_dai_links + total_links,
-				       msm_bolero_fe_dai_links,
-				       sizeof(msm_bolero_fe_dai_links));
-				total_links +=
-					ARRAY_SIZE(msm_bolero_fe_dai_links);
-			}
-		}
-		#endif /* OPLUS_FEATURE_PLATFORM_LITO */
 
 		memcpy(msm_kona_dai_links + total_links,
 		       msm_common_misc_fe_dai_links,
@@ -8071,23 +7944,11 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 		       sizeof(msm_common_be_dai_links));
 		total_links += ARRAY_SIZE(msm_common_be_dai_links);
 
-		#ifndef OPLUS_FEATURE_PLATFORM_LITO
 		memcpy(msm_kona_dai_links + total_links,
 		       msm_wsa_cdc_dma_be_dai_links,
 		       sizeof(msm_wsa_cdc_dma_be_dai_links));
 		total_links +=
 			ARRAY_SIZE(msm_wsa_cdc_dma_be_dai_links);
-		#else /* OPLUS_FEATURE_PLATFORM_LITO */
-		if (wsa_bolero_codec) {
-			dev_dbg(dev, "%s(): WSAmacro in bolero codec present\n",
-				__func__);
-			memcpy(msm_kona_dai_links + total_links,
-			       msm_wsa_cdc_dma_be_dai_links,
-			       sizeof(msm_wsa_cdc_dma_be_dai_links));
-			total_links +=
-				ARRAY_SIZE(msm_wsa_cdc_dma_be_dai_links);
-		}
-		#endif /* OPLUS_FEATURE_PLATFORM_LITO */
 
 		memcpy(msm_kona_dai_links + total_links,
 		       msm_rx_tx_cdc_dma_be_dai_links,
@@ -8405,15 +8266,6 @@ static int msm_init_aux_dev(struct platform_device *pdev,
 	int codecs_found = 0;
 	int ret = 0;
 
-
-
-#ifdef CONFIG_SND_SOC_SIA81XX
-	const char *codec_vendor;
-	int rc = 0;
-	int sia81xx_aux_num = 0;
-	int sia81xx_codec_conf_num = 0;
-#endif /* CONFIG_SND_SOC_SIA81XX */
-
 	/* Get maximum WSA device count for this platform */
 	ret = of_property_read_u32(pdev->dev.of_node,
 				   "qcom,wsa-max-devs", &wsa_max_devs);
@@ -8618,19 +8470,6 @@ aux_dev_register:
 	card->num_aux_devs = wsa_max_devs + codec_aux_dev_cnt;
 	card->num_configs = wsa_max_devs + codec_aux_dev_cnt;
 
-#ifdef CONFIG_SND_SOC_SIA81XX
-	rc = of_property_read_string(pdev->dev.of_node,
-			"oplus,speaker-vendor", &codec_vendor);
-	if (!rc) {
-		if (!strcmp(codec_vendor, "sia81xx")) {
-			sia81xx_aux_num = soc_sia81xx_get_aux_num(pdev);
-			sia81xx_codec_conf_num = soc_sia81xx_get_codec_conf_num(pdev);
-			card->num_aux_devs += sia81xx_aux_num;
-			card->num_configs += sia81xx_codec_conf_num;
-		}
-	}
-#endif
-
 	/* Alloc array of AUX devs struct */
 	msm_aux_dev = devm_kcalloc(&pdev->dev, card->num_aux_devs,
 				       sizeof(struct snd_soc_aux_dev),
@@ -8680,15 +8519,6 @@ aux_dev_register:
 		msm_codec_conf[i].of_node =
 				wsa881x_dev_info[i].of_node;
 	}
-
-#ifdef CONFIG_SND_SOC_SIA81XX
-	if (!rc) {
-		if (!strcmp(codec_vendor, "sia81xx")) {
-        		soc_sia81xx_init(pdev, msm_aux_dev + 1, sia81xx_aux_num,
-                                msm_codec_conf + 1, sia81xx_codec_conf_num);
-		}
-	}
-#endif
 
 	for (i = 0; i < codec_aux_dev_cnt; i++) {
 		msm_aux_dev[wsa_max_devs + i].name = NULL;
@@ -9181,10 +9011,6 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 			__func__, ret);
 
 	is_initial_boot = true;
-
-#ifdef OPLUS_BUG_DEBUG
-	pr_warning("%s, %d, Successfully!\n", __func__, __LINE__);
-#endif /* OPLUS_BUG_DEBUG */
 
 	return 0;
 err:

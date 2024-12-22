@@ -1753,7 +1753,6 @@ static int ufshcd_clock_scaling_prepare(struct ufs_hba *hba)
 #else
 	#define DOORBELL_CLR_TOUT_US		(1000 * 1000) /* 1 sec */
 #endif
-
 	int ret = 0;
 	/*
 	 * make sure that there are no outstanding requests when
@@ -2152,87 +2151,6 @@ static ssize_t ufshcd_clkscale_enable_store(struct device *dev,
 out:
 	return count;
 }
-
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-static ssize_t ufshcd_transmission_status_data_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct ufs_hba *hba = dev_get_drvdata(dev);
-
-	return snprintf(buf, PAGE_SIZE,
-					"transmission_status_enable:%u\n"
-					"gear_min_write_sec:%llu\n"
-					"gear_max_write_sec:%llu\n"
-					"gear_min_read_sec:%llu\n"
-					"gear_max_read_sec:%llu\n"
-					"gear_min_write_us:%llu\n"
-					"gear_max_write_us:%llu\n"
-					"gear_min_read_us:%llu\n"
-					"gear_max_read_us:%llu\n"
-					"gear_min_dev_us:%llu\n"
-					"gear_max_dev_us:%llu\n"
-					"gear_min_other_sec:%llu\n"
-					"gear_max_other_sec:%llu\n"
-					"gear_min_other_us:%llu\n"
-					"gear_max_other_us:%llu\n"
-					"scsi_send_count:%llu\n"
-					"dev_cmd_count:%llu\n",
-					hba->ufs_transmission_status.transmission_status_enable,
-					hba->ufs_transmission_status.gear_min_write_sec,
-					hba->ufs_transmission_status.gear_max_write_sec,
-					hba->ufs_transmission_status.gear_min_read_sec,
-					hba->ufs_transmission_status.gear_max_read_sec,
-					hba->ufs_transmission_status.gear_min_write_us,
-					hba->ufs_transmission_status.gear_max_write_us,
-					hba->ufs_transmission_status.gear_min_read_us,
-					hba->ufs_transmission_status.gear_max_read_us,
-					hba->ufs_transmission_status.gear_min_dev_us,
-					hba->ufs_transmission_status.gear_max_dev_us,
-					hba->ufs_transmission_status.gear_min_other_sec,
-					hba->ufs_transmission_status.gear_max_other_sec,
-					hba->ufs_transmission_status.gear_min_other_us,
-					hba->ufs_transmission_status.gear_max_other_us,
-					hba->ufs_transmission_status.scsi_send_count,
-					hba->ufs_transmission_status.dev_cmd_count);
-}
-
-static ssize_t ufshcd_transmission_status_data_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct ufs_hba *hba = dev_get_drvdata(dev);
-	u32 value;
-
-	if (kstrtou32(buf, 0, &value))
-		return -EINVAL;
-
-	value = !!value;
-
-	if (value) {
-		hba->ufs_transmission_status.transmission_status_enable = 1;
-	} else {
-		hba->ufs_transmission_status.transmission_status_enable = 0;
-		memset(&hba->ufs_transmission_status, 0, sizeof(struct ufs_transmission_status_t));
-	}
-
-	return count;
-}
-
-static void ufshcd_transmission_status_init_sysfs(struct ufs_hba *hba)
-{
-	hba->ufs_transmission_status_attr.show = ufshcd_transmission_status_data_show;
-	hba->ufs_transmission_status_attr.store = ufshcd_transmission_status_data_store;
-	sysfs_attr_init(&hba->ufs_transmission_status_attr.attr);
-	hba->ufs_transmission_status_attr.attr.name = "ufs_transmission_status";
-	hba->ufs_transmission_status_attr.attr.mode = 0644;
-	if (device_create_file(hba->dev, &hba->ufs_transmission_status_attr))
-		dev_err(hba->dev, "Failed to create sysfs for ufs_transmission_status_attr\n");
-
-	/*init the struct ufs_transmission_status*/
-	memset(&hba->ufs_transmission_status, 0, sizeof(struct ufs_transmission_status_t));
-	hba->ufs_transmission_status.transmission_status_enable = 1;
-}
-#endif /*OPLUS_FEATURE_MIDAS*/
 
 static void ufshcd_clkscaling_init_sysfs(struct ufs_hba *hba)
 {
@@ -3099,6 +3017,7 @@ static void ufshcd_init_hibern8(struct ufs_hba *hba)
 		h8->enable_attr.attr.mode = 0644;
 		if (device_create_file(hba->dev, &h8->enable_attr))
 			dev_err(hba->dev, "Failed to create sysfs for hibern8_on_idle_enable\n");
+
 	}
 }
 
@@ -3199,24 +3118,10 @@ int ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 			hba->lrb[task_tag].cmd ? "scsi_send" : "dev_cmd_send");
 	ufshcd_clk_scaling_start_busy(hba);
 	__set_bit(task_tag, &hba->outstanding_reqs);
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add request count information*/
-	recordRequestCnt(&hba->signalCtrl);
-#endif
 	ufshcd_writel(hba, 1 << task_tag, REG_UTP_TRANSFER_REQ_DOOR_BELL);
 	/* Make sure that doorbell is committed immediately */
 	wmb();
 	ufshcd_update_tag_stats(hba, task_tag);
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-	if (hba->ufs_transmission_status.transmission_status_enable) {
-		if(hba->lrb[task_tag].cmd) {
-			hba->ufs_transmission_status.scsi_send_count++;
-		} else {
-			hba->ufs_transmission_status.dev_cmd_count++;
-		}
-	}
-#endif
 	return 0;
 }
 
@@ -3847,16 +3752,6 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	int tag;
 	int err = 0;
 	bool has_read_lock = false;
-#ifdef OPLUS_FEATURE_UFSPLUS
-/* Add TAG for UFS plus */
-#if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
-	struct scsi_cmnd *pre_cmd;
-	struct ufshcd_lrb *add_lrbp;
-	int add_tag;
-	int pre_req_err = -EBUSY;
-	int lun = ufshcd_scsi_to_upiu_lun(cmd->device->lun);
-#endif
-#endif
 
 	hba = shost_priv(host);
 
@@ -3966,29 +3861,7 @@ static int ufshcd_queuecommand(struct Scsi_Host *host, struct scsi_cmnd *cmd)
 	}
 	if (ufshcd_is_hibern8_on_idle_allowed(hba))
 		WARN_ON(hba->hibern8_on_idle.state != HIBERN8_EXITED);
-#ifdef OPLUS_FEATURE_UFSPLUS
-/* Add TAG for UFS plus */
-#if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
-		add_tag = ufsf_hpb_prepare_pre_req(&hba->ufsf, cmd, lun);
-		if (add_tag == -EAGAIN) {
-			clear_bit_unlock(tag, &hba->lrb_in_use);
-			err = SCSI_MLQUEUE_HOST_BUSY;
-			ufshcd_release_all(hba);
-			goto out;
-		}
-		if (add_tag < 0) {
-			hba->lrb[tag].hpb_ctx_id = MAX_HPB_CONTEXT_ID;
-			goto send_orig_cmd;
-		}
 
-		add_lrbp = &hba->lrb[add_tag];
-
-		pre_req_err = ufsf_hpb_prepare_add_lrbp(&hba->ufsf, add_tag);
-		if (pre_req_err)
-			hba->lrb[tag].hpb_ctx_id = MAX_HPB_CONTEXT_ID;
-send_orig_cmd:
-#endif
-#endif
 	/* Vote PM QoS for the request */
 	ufshcd_vops_pm_qos_req_start(hba, cmd->request);
 
@@ -4042,18 +3915,6 @@ send_orig_cmd:
 
 	/* issue command to the controller */
 	spin_lock_irqsave(hba->host->host_lock, flags);
-#ifdef OPLUS_FEATURE_UFSPLUS
-/* Add TAG for UFS plus */
-#if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
-	if (!pre_req_err) {
-		ufshcd_vops_setup_xfer_req(hba, add_tag, (add_lrbp->cmd ? true : false));
-		ufshcd_send_command(hba, add_tag);
-		pre_req_err = -EBUSY;
-		atomic64_inc(&hba->ufsf.hpb_lup[add_lrbp->lun]->pre_req_cnt);
-		ufsf_para.pre_req++;
-	}
-#endif
-#endif
 	ufshcd_vops_setup_xfer_req(hba, tag, (lrbp->cmd ? true : false));
 
 	err = ufshcd_send_command(hba, tag);
@@ -4073,20 +3934,6 @@ send_orig_cmd:
 out_unlock:
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 out:
-#ifdef OPLUS_FEATURE_UFSPLUS
-/* Add TAG for UFS plus */
-#if defined(CONFIG_UFSFEATURE) && defined(CONFIG_UFSHPB)
-	if (!pre_req_err) {
-		pre_cmd = add_lrbp->cmd;
-		scsi_dma_unmap(pre_cmd);
-		add_lrbp->cmd = NULL;
-		clear_bit_unlock(add_tag, &hba->lrb_in_use);
-		ufshcd_release_all(hba);
-		ufshcd_vops_pm_qos_req_end(hba, pre_cmd->request, true);
-		ufsf_hpb_end_pre_req(&hba->ufsf, pre_cmd->request);
-	}
-#endif
-#endif
 	if (has_read_lock)
 		ufshcd_put_read_lock(hba);
 	return err;
@@ -6700,62 +6547,6 @@ static irqreturn_t ufshcd_uic_cmd_compl(struct ufs_hba *hba, u32 intr_status)
 	return retval;
 }
 
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-static void ufshcd_lrb_scsicmd_time_statistics(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
-{
-	if (lrbp->cmd->cmnd[0] == WRITE_10 || lrbp->cmd->cmnd[0] == WRITE_16) {
-		if (hba->pwr_info.gear_tx == 1) {
-			hba->ufs_transmission_status.gear_min_write_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_write_us +=
-				ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-
-		if (hba->pwr_info.gear_tx == 3 || hba->pwr_info.gear_tx == 4) {
-			hba->ufs_transmission_status.gear_max_write_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_write_us +=
-				ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-	} else if (lrbp->cmd->cmnd[0] == READ_10 || lrbp->cmd->cmnd[0] == READ_16) {
-		if (hba->pwr_info.gear_rx == 1) {
-			hba->ufs_transmission_status.gear_min_read_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_read_us +=
-				ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-
-		if (hba->pwr_info.gear_rx == 3 || hba->pwr_info.gear_rx == 4) {
-			hba->ufs_transmission_status.gear_max_read_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_read_us +=
-				ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-	} else {
-		if (hba->pwr_info.gear_rx == 1) {
-			hba->ufs_transmission_status.gear_min_other_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_min_other_us += ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-
-		if (hba->pwr_info.gear_rx == 3 || hba->pwr_info.gear_rx == 4) {
-			hba->ufs_transmission_status.gear_max_other_sec += blk_rq_sectors(lrbp->cmd->request);
-			hba->ufs_transmission_status.gear_max_other_us += ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-		}
-	}
-
-	return;
-}
-
-static void ufshcd_lrb_devcmd_time_statistics(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
-{
-	if (hba->pwr_info.gear_tx == 1) {
-		hba->ufs_transmission_status.gear_min_dev_us +=
-			ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-	}
-
-	if (hba->pwr_info.gear_tx == 3 || hba->pwr_info.gear_tx == 4) {
-		hba->ufs_transmission_status.gear_max_dev_us +=
-			ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-	}
-}
-#endif /*OPLUS_FEATURE_MIDAS*/
 /**
  * __ufshcd_transfer_req_compl - handle SCSI and query command completion
  * @hba: per adapter instance
@@ -6782,12 +6573,6 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			scsi_dma_unmap(cmd);
 			cmd->result = result;
 			lrbp->compl_time_stamp = ktime_get();
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-			if (hba->ufs_transmission_status.transmission_status_enable) {
-				ufshcd_lrb_scsicmd_time_statistics(hba, lrbp);
-			}
-#endif
 			update_req_stats(hba, lrbp);
 			ufshcd_complete_lrbp_crypto(hba, cmd, lrbp);
 			/* Mark completed command as NULL in LRB */
@@ -6802,34 +6587,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 				ufshcd_vops_pm_qos_req_end(hba, cmd->request,
 					false);
 			}
-#ifdef OPLUS_FEATURE_UFS_SHOW_LATENCY
-/* add latency_hist node for ufs latency calculate in sysfs. */
-			if (cmd->request) {
-				/* Update IO svc time latency histogram */
-				u_int64_t delta_us = ktime_us_delta(lrbp->compl_time_stamp, lrbp->issue_time_stamp);
-				struct request *req = cmd->request;
-				unsigned int option = req_op(req);
-				if (hba->latency_hist_enabled &&(!blk_rq_is_passthrough(req))) {
-					if (option == REQ_OP_WRITE || option == REQ_OP_WRITE_SAME) {
-						io_update_latency_hist(&hba->io_lat_write, delta_us, blk_rq_sectors(req));
-					} else if (option == REQ_OP_READ) {
-						io_update_latency_hist(&hba->io_lat_read, delta_us, blk_rq_sectors(req));
-					} else {
-						io_update_latency_hist(&hba->io_lat_other, delta_us, blk_rq_sectors(req));
-					}
-				}
-#ifdef CONFIG_TRACEPOINTS
-				if(trace_ufshcd_command_enabled()) {
-					if ((5000 < delta_us) && bio_has_data(req->bio)) {
-						trace_printk("ufs_io_latency:%06lld us, io_type:%s, LBA:%08x, size:%d\n",
-							delta_us, (rq_data_dir(req) == READ) ? "R" : "W",
-							(unsigned int)req->bio->bi_iter.bi_sector,
-							cmd->sdb.length);
-					}
-				}
-#endif
-			}
-#endif
+
 			clear_bit_unlock(index, &hba->lrb_in_use);
 			/*
 			 *__ufshcd_release and __ufshcd_hibern8_release is
@@ -6851,12 +6609,6 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 		} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
 			lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
 			lrbp->compl_time_stamp = ktime_get();
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-			if (hba->ufs_transmission_status.transmission_status_enable) {
-				ufshcd_lrb_devcmd_time_statistics(hba, lrbp);
-			}
-#endif
 			if (hba->dev_cmd.complete) {
 				ufshcd_cond_add_cmd_trace(hba, index,
 						"dev_cmd_cmpl");
@@ -7837,10 +7589,6 @@ static irqreturn_t ufshcd_update_uic_error(struct ufs_hba *hba)
 		 */
 		dev_dbg(hba->dev, "%s: UIC Lane error reported, reg 0x%x\n",
 				__func__, reg);
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, reg, UNIPRO_ERR_PA);
-#endif
 		ufshcd_update_uic_error_cnt(hba, reg, UFS_UIC_ERROR_PA);
 		ufshcd_update_uic_reg_hist(&hba->ufs_stats.pa_err, reg);
 
@@ -7868,10 +7616,6 @@ static irqreturn_t ufshcd_update_uic_error(struct ufs_hba *hba)
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_DATA_LINK_LAYER);
 	if ((reg & UIC_DATA_LINK_LAYER_ERROR) &&
 	    (reg & UIC_DATA_LINK_LAYER_ERROR_CODE_MASK)) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/*  add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, reg, UNIPRO_ERR_DL);
-#endif
 		ufshcd_update_uic_error_cnt(hba, reg, UFS_UIC_ERROR_DL);
 		ufshcd_update_uic_reg_hist(&hba->ufs_stats.dl_err, reg);
 
@@ -7894,10 +7638,6 @@ static irqreturn_t ufshcd_update_uic_error(struct ufs_hba *hba)
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_NETWORK_LAYER);
 	if ((reg & UIC_NETWORK_LAYER_ERROR) &&
 	    (reg & UIC_NETWORK_LAYER_ERROR_CODE_MASK)) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, reg, UNIPRO_ERR_NL);
-#endif
 		ufshcd_update_uic_reg_hist(&hba->ufs_stats.nl_err, reg);
 		hba->uic_error |= UFSHCD_UIC_NL_ERROR;
 		retval |= IRQ_HANDLED;
@@ -7906,10 +7646,6 @@ static irqreturn_t ufshcd_update_uic_error(struct ufs_hba *hba)
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_TRANSPORT_LAYER);
 	if ((reg & UIC_TRANSPORT_LAYER_ERROR) &&
 	    (reg & UIC_TRANSPORT_LAYER_ERROR_CODE_MASK)) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/*  add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, reg, UNIPRO_ERR_TL);
-#endif
 		ufshcd_update_uic_reg_hist(&hba->ufs_stats.tl_err, reg);
 		hba->uic_error |= UFSHCD_UIC_TL_ERROR;
 		retval |= IRQ_HANDLED;
@@ -7918,10 +7654,6 @@ static irqreturn_t ufshcd_update_uic_error(struct ufs_hba *hba)
 	reg = ufshcd_readl(hba, REG_UIC_ERROR_CODE_DME);
 	if ((reg & UIC_DME_ERROR) &&
 	    (reg & UIC_DME_ERROR_CODE_MASK)) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/*  add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, reg, UNIPRO_ERR_DME);
-#endif
 		ufshcd_update_uic_error_cnt(hba, reg, UFS_UIC_ERROR_DME);
 		ufshcd_update_uic_reg_hist(&hba->ufs_stats.dme_err, reg);
 		hba->uic_error |= UFSHCD_UIC_DME_ERROR;
@@ -7947,17 +7679,10 @@ static irqreturn_t ufshcd_check_errors(struct ufs_hba *hba)
 	irqreturn_t retval = IRQ_NONE;
 
 	if (hba->errors & INT_FATAL_ERRORS || hba->ce_error) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, hba->errors, UNIPRO_ERR_FATAL);
-#endif
 		queue_eh_work = true;
 	}
+
 	if (hba->errors & UIC_LINK_LOST) {
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-		recordUniproErr(&hba->signalCtrl, hba->errors, UNIPRO_ERR_LINK);
-#endif
 		dev_err(hba->dev, "%s: UIC_LINK_LOST received, errors 0x%x\n",
 					__func__, hba->errors);
 		queue_eh_work = true;
@@ -8155,10 +7880,6 @@ static int __ufshcd_issue_tm_cmd(struct ufs_hba *hba,
 	__set_bit(free_slot, &hba->outstanding_tasks);
 
 	/* Make sure descriptors are ready before ringing the task doorbell */
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-	/* add request count information */
-		recordRequestCnt(&hba->signalCtrl);
-#endif
 	wmb();
 
 	ufshcd_writel(hba, 1 << free_slot, REG_UTP_TASK_REQ_DOOR_BELL);
@@ -8861,13 +8582,7 @@ int __attribute__((weak)) register_device_proc(char *name, char *version, char *
 {
 	return 0;
 }
-
-int __attribute__((weak)) register_device_proc_for_ufsplus(char *name, int *hpb_status, int *tw_status)
-{
-	return 0;
-}
 #endif
-
 
 static int ufshcd_scsi_add_wlus(struct ufs_hba *hba)
 {
@@ -8876,9 +8591,9 @@ static int ufshcd_scsi_add_wlus(struct ufs_hba *hba)
 	struct scsi_device *sdev_boot = NULL;
 #ifdef OPLUS_FEATURE_UFS_DRIVER
 	/* add for ufs device in /proc/devinfo */
-		static char temp_version[5] = {0};
-		static char vendor[9] = {0};
-		static char model[17] = {0};
+	static char temp_version[5] = {0};
+	static char vendor[9] = {0};
+	static char model[17] = {0};
 #endif
 
 	hba->sdev_ufs_device = __scsi_add_device(hba->host, 0, 0,
@@ -8916,8 +8631,6 @@ out:
 	strncpy(model, hba->sdev_ufs_device->model, 16);
 	register_device_proc("ufs_version", temp_version, vendor);
 	register_device_proc("ufs", model, vendor);
-	/* add for ufsplus status node in /proc/devinfo */
-	/* register_device_proc_for_ufsplus("ufsplus_status", &ufsplus_hpb_status,&ufsplus_tw_status); */
 #endif
 	return ret;
 }
@@ -9634,12 +9347,6 @@ reinit:
 #if defined(CONFIG_UFSFEATURE)
 		ufsf_device_check(hba);
 		ufsf_init(&hba->ufsf);
-
-#if defined(CONFIG_UFSHPB)
-		/*temporary for hynix 2.2 tw function*/
-		if(hba->dev_info.w_manufacturer_id == 0x1AD && hba->dev_info.w_spec_version == 0x220)
-			ufsplus_hpb_status = 1;
-#endif
 #endif
 #endif
 		pm_runtime_put_sync(hba->dev);
@@ -9666,6 +9373,7 @@ out:
 	ufsf_reset(&hba->ufsf);
 #endif
 #endif
+
 	trace_ufshcd_init(dev_name(hba->dev), ret,
 		ktime_to_us(ktime_sub(ktime_get(), start)),
 		hba->curr_dev_pwr_mode, hba->uic_link_state);
@@ -9991,13 +9699,14 @@ static int ufshcd_ioctl(struct scsi_device *dev, int cmd, void __user *buffer)
 	int err = 0;
 
 	BUG_ON(!hba);
-	if (!buffer) {
-		dev_err(hba->dev, "%s: User buffer is NULL!\n", __func__);
-		return -EINVAL;
-	}
 
 	switch (cmd) {
 	case UFS_IOCTL_QUERY:
+		if (!buffer) {
+			dev_err(hba->dev, "%s: User buffer is NULL!\n",
+				 __func__);
+			return -EINVAL;
+		}
 		pm_runtime_get_sync(hba->dev);
 		err = ufshcd_query_ioctl(hba, ufshcd_scsi_to_upiu_lun(dev->lun),
 				buffer);
@@ -11159,6 +10868,7 @@ static int ufshcd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 
 	if (hba->clk_scaling.is_allowed)
 		ufshcd_resume_clkscaling(hba);
+
 #ifdef OPLUS_FEATURE_UFSPLUS
 /* Add TAG for UFS plus */
 #if defined(CONFIG_UFSFEATURE)
@@ -11452,10 +11162,6 @@ void ufshcd_remove(struct ufs_hba *hba)
 /* Add for UFS+ RUS */
 	remove_ufsplus_ctrl_proc();
 #endif
-#endif
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-	remove_signal_quality_proc(&hba->signalCtrl);
 #endif
 	ufs_sysfs_remove_nodes(hba->dev);
 	scsi_remove_host(hba->host);
@@ -11757,20 +11463,11 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 
 	ufshcd_cmd_log_init(hba);
 
-#ifdef OPLUS_FEATURE_MIDAS
-/* Add t for ufs transmission_status for midas */
-	ufshcd_transmission_status_init_sysfs(hba);
-#endif
-
 #ifdef OPLUS_FEATURE_UFSPLUS
 /* Add TAG for UFS plus */
 #if defined(CONFIG_UFSFEATURE)
 	ufsf_set_init_state(&hba->ufsf);
 #endif
-#endif
-#ifdef OPLUS_FEATURE_PADL_STATISTICS
-/* add unipro statistic information */
-	create_signal_quality_proc(&hba->signalCtrl);
 #endif
 	async_schedule(ufshcd_async_scan, hba);
 

@@ -318,6 +318,8 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 		pcm->session_id = pcm->audio_client->session;
 		#ifdef OPLUS_FEATURE_KTV
 		pcm->audio_client->perf_mode = is_ktv_mode(pcm) ? LOW_LATENCY_PCM_MODE : pdata->perf_mode;
+		#else
+		pcm->audio_client->perf_mode = pdata->perf_mode;
 		#endif /* OPLUS_FEATURE_KTV */
 		ret = q6asm_open_loopback_v2(pcm->audio_client,
 					     bits_per_sample);
@@ -485,16 +487,17 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 		struct snd_soc_pcm_runtime *soc_pcm_tx =
 			pcm->capture_substream->private_data;
 		#ifdef OPLUS_FEATURE_KTV
-		int tx_perf_mode = is_ktv_mode(pcm) ? LEGACY_PCM_MODE : pcm->audio_client->perf_mode;
+		int tx_perf_mode = is_ktv_mode(pcm) ? LEGACY_PCM_MODE :
+				pcm->audio_client->perf_mode;
 		#endif /* OPLUS_FEATURE_KTV */
 		event.event_func = msm_pcm_route_event_handler;
 		event.priv_data = (void *) pcm;
+
 		if (!pcm->audio_client) {
 			mutex_unlock(&pcm->lock);
 			pr_err("%s: audio client freed\n", __func__);
 			return -EINVAL;
 		}
-
 		#ifndef OPLUS_FEATURE_KTV
 		msm_pcm_routing_reg_phy_stream(soc_pcm_tx->dai_link->id,
 			pcm->audio_client->perf_mode,

@@ -22,7 +22,6 @@
 #include "internal.h"
 
 #define WCD938X_ZDET_SUPPORTED          true
-
 /* Z value defined in milliohm */
 #define WCD938X_ZDET_VAL_32             32000
 #define WCD938X_ZDET_VAL_400            400000
@@ -1043,9 +1042,9 @@ int wcd938x_mbhc_post_ssr_init(struct wcd938x_mbhc *mbhc,
 				    wcd_mbhc_registers, true);
 	else
 		ret = wcd_mbhc_init(wcd_mbhc, component, &mbhc_cb, &intr_ids,
-					wcd_mbhc_registers, false);
+				    wcd_mbhc_registers, false);
 	#else /* OPLUS_FEATURE_IMPEDANCE_MATCH */
-		ret = wcd_mbhc_init(wcd_mbhc, component, &mbhc_cb, &intr_ids,
+	ret = wcd_mbhc_init(wcd_mbhc, component, &mbhc_cb, &intr_ids,
 			    wcd_mbhc_registers, WCD938X_ZDET_SUPPORTED);
 	#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
 	if (ret) {
@@ -1078,7 +1077,8 @@ int wcd938x_mbhc_init(struct wcd938x_mbhc **mbhc,
 	#ifdef OPLUS_FEATURE_IMPEDANCE_MATCH
 	u32 enable_hp_impedance_detect = 0;
 	int rc = 0;
-	const char *mbhc_enable_hp_impedance_detect = "oplus,mbhc_enable_hp_impedance_detect";
+	const char *mbhc_enable_hp_impedance_detect =
+			"oplus,mbhc_enable_hp_impedance_detect";
 	#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
 
 	if (!component) {
@@ -1113,23 +1113,27 @@ int wcd938x_mbhc_init(struct wcd938x_mbhc **mbhc,
 	wcd_mbhc->micb_mv = pdata->micbias.micb2_mv;
 
 	#ifdef OPLUS_FEATURE_IMPEDANCE_MATCH
-	if (of_find_property(component->dev->of_node, mbhc_enable_hp_impedance_detect,
-				    NULL)) {
-		rc = of_property_read_u32(component->dev->of_node, mbhc_enable_hp_impedance_detect, &enable_hp_impedance_detect);
+	if (of_find_property(component->dev->of_node,
+			mbhc_enable_hp_impedance_detect, NULL)) {
+		rc = of_property_read_u32(component->dev->of_node,
+				mbhc_enable_hp_impedance_detect,
+				&enable_hp_impedance_detect);
 		if (!rc) {
 			if (enable_hp_impedance_detect) {
-				wcd_mbhc->enable_hp_impedance_detect= true;
+				wcd_mbhc->enable_hp_impedance_detect = true;
 			} else {
 				wcd_mbhc->enable_hp_impedance_detect = false;
 			}
 		} else
-			dev_err(component->dev, "%s: Looking up %s property in node %s failed\n",
-				__func__, mbhc_enable_hp_impedance_detect, component->dev->of_node->full_name);
+			dev_err(component->dev,
+				"%s: Looking up %s property in node %s failed\n",
+				__func__, mbhc_enable_hp_impedance_detect,
+				component->dev->of_node->full_name);
 	} else {
-		dev_info(component->dev, "%s: oplus,mbhc_enable_hp_impedance_detect DT property not found\n",
+		dev_info(component->dev,
+			"%s: oplus,mbhc_enable_hp_impedance_detect DT property not found\n",
 			__func__);
 	}
-	dev_err(component->dev, "%s:wcd_mbhc->enable_hp_impedance_detect(%d)\n",__func__, wcd_mbhc->enable_hp_impedance_detect);
 	#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
 
 	#ifdef OPLUS_FEATURE_IMPEDANCE_MATCH
@@ -1142,11 +1146,10 @@ int wcd938x_mbhc_init(struct wcd938x_mbhc **mbhc,
 					&intr_ids, wcd_mbhc_registers,
 					false);
 	#else /* OPLUS_FEATURE_IMPEDANCE_MATCH */
-		ret = wcd_mbhc_init(wcd_mbhc, component, &mbhc_cb,
+	ret = wcd_mbhc_init(wcd_mbhc, component, &mbhc_cb,
 				&intr_ids, wcd_mbhc_registers,
 				WCD938X_ZDET_SUPPORTED);
 	#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
-
 	if (ret) {
 		dev_err(component->dev, "%s: mbhc initialization failed\n",
 			__func__);

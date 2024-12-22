@@ -638,8 +638,8 @@ struct wcd_mbhc {
 	struct delayed_work hp_detect_work;
 	#endif /* OPLUS_ARCH_EXTENDS */
 #ifdef OPLUS_ARCH_EXTENDS
-        bool irq_trigger_enable;
-        struct delayed_work mech_irq_trigger_dwork;
+	bool irq_trigger_enable;
+	struct delayed_work mech_irq_trigger_dwork;
 #endif /* OPLUS_ARCH_EXTENDS */
 	#ifdef OPLUS_ARCH_EXTENDS
 	bool headset_bias_alwayon;

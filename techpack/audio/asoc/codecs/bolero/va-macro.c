@@ -1731,7 +1731,7 @@ static int va_macro_mic_clk_get(struct snd_kcontrol *kcontrol,
 	ucontrol->value.integer.value[0] = VA_MACRO_CLK_DIV_16 - va_priv_golbal->dmic_clk_div;
 	pr_debug("%s: va mic clk = %ld\n",
 		 __func__, ucontrol->value.integer.value[0]);
-    return 0;
+	return 0;
 }
 
 static int va_macro_mic_clk_put(struct snd_kcontrol *kcontrol,
@@ -1764,7 +1764,7 @@ static int va_macro_mic_clk_put(struct snd_kcontrol *kcontrol,
 	}
 	pr_debug("%s: dmic_clk_div = %d\n",
 		 __func__, va_priv_golbal->dmic_clk_div);
-    return 0;
+	return 0;
 }
 
 static const char *const mic_clk_rate_text[] = {"0P6MHZ", "1P2MHZ", "1P6MHZ", "2P4MHZ",
@@ -3231,6 +3231,7 @@ static int va_macro_probe(struct platform_device *pdev)
 #ifdef OPLUS_FEATURE_MIC_VA_MIC_CLK_SWITCH
 	va_priv_golbal = va_priv;
 #endif
+
 	mutex_init(&va_priv->mclk_lock);
 	dev_set_drvdata(&pdev->dev, va_priv);
 	va_macro_init_ops(&ops, va_io_base, va_without_decimation);

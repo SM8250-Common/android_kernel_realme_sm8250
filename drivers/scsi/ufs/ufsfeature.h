@@ -122,12 +122,6 @@ struct ufsf_lu_desc {
 	int lu_logblk_size;	/* 0Ah bLogicalBlockSize. default 0x0C = 4KB */
 	u64 lu_logblk_cnt;	/* 0Bh qLogicalBlockCount. */
 
-#if defined(CONFIG_UFSHPB)
-	u16 lu_max_active_hpb_rgns;	/* 23h:24h wLUMaxActiveHPBRegions */
-	u16 lu_hpb_pinned_rgn_startidx;	/* 25h:26h wHPBPinnedRegionStartIdx */
-	u16 lu_num_hpb_pinned_rgns;	/* 27h:28h wNumHPBPinnedRegions */
-	int lu_hpb_pinned_end_offset;
-#endif
 #if defined(CONFIG_UFSTW)
 	unsigned int tw_lu_buf_size;
 #endif
@@ -140,43 +134,14 @@ struct ufsf_feature {
 	struct scsi_device *sdev_ufs_lu[UFS_UPIU_MAX_GENERAL_LUN];
 	bool issue_read10_debug;
 
-#if defined(CONFIG_UFSHPB)
-	struct ufshpb_dev_info hpb_dev_info;
-	struct ufshpb_lu *hpb_lup[UFS_UPIU_MAX_GENERAL_LUN];
-	struct work_struct hpb_init_work;
-	struct work_struct hpb_eh_work;
-	wait_queue_head_t hpb_wait;
-	atomic_t hpb_state;
-	struct kref hpb_kref;
-#endif
 #if defined(CONFIG_UFSTW)
 	struct ufstw_dev_info tw_dev_info;
 	struct ufstw_lu *tw_lup[UFS_UPIU_MAX_GENERAL_LUN];
 	atomic_t tw_state;
 #endif
-#if defined(CONFIG_UFSHID)
-	atomic_t hid_state;
-	struct ufshid_dev *hid_dev;
-#endif
 };
 
 struct ufsf_feature_para {
-#if defined(CONFIG_UFSHPB)
-	u64 hit;
-	u64 miss;
-	u64 hit_4k;
-	u64 hit_8_32k;
-	u64 span;
-	u64 span_hit;
-	u64 noti;
-	u64 noti_act;
-	u64 noti_inact;
-	u64 rgn_act;
-	u64 map_req;
-	u64 pre_req;
-	u16 hpb_rgns;
-#endif
-
 #if defined(CONFIG_UFSTW)
 	u64 tw_state_ts;
 	u64 tw_enable_ms;
