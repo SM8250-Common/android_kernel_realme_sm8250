@@ -91,9 +91,6 @@ ifdef CONFIG_QCOM_RPMH
 else
        obj-$(CONFIG_QTI_RPM_STATS_LOG) += rpm_master_stat.o
 endif
-#ifdef OPLUS_FEATURE_POWERINFO_RPMH
-obj-$(CONFIG_RPMH_MODEM_SLEEPINFO_BUFFER) += rpmh_modem_sleepinfo.o
-#endif /* OPLUS_FEATURE_POWERINFO_RPMH */
 obj-$(CONFIG_QCOM_DCC) += dcc.o
 obj-$(CONFIG_QTI_RPM_STATS_LOG) += rpm_stats.o
 obj-$(CONFIG_QCOM_MEM_OFFLINE) += mem-offline.o
@@ -118,4 +115,3 @@ obj-$(CONFIG_QTI_CRYPTO_TZ) += crypto-qti-tz.o
 obj-$(CONFIG_QTI_HW_KEY_MANAGER) += hwkm_qti.o
 hwkm_qti-y += hwkm.o
 obj-$(CONFIG_MSM_BAM_DMUX) += bam_dmux.o
-obj-y += serial_num.o

@@ -34,6 +34,8 @@
  */
 #ifdef OPLUS_FEATURE_CHG_BASIC
 #define QPNP_VIB_MIN_PLAY_MS		35
+#else
+#define QPNP_VIB_MIN_PLAY_MS		50
 #endif
 #define QPNP_VIB_PLAY_MS		5000
 #define QPNP_VIB_MAX_PLAY_MS		15000
@@ -330,17 +332,15 @@ static ssize_t qpnp_vib_store_activate(struct device *dev,
 		return count;
 
 #ifdef OPLUS_FEATURE_CHG_BASIC
-	if ((hrtimer_active(&chip->stop_timer))&&
-		(chip->vib_play_ms == QPNP_VIB_MIN_PLAY_MS))
+	if ((hrtimer_active(&chip->stop_timer)) &&
+			(chip->vib_play_ms == QPNP_VIB_MIN_PLAY_MS))
 		return count;
 #endif
 
 	mutex_lock(&chip->lock);
 	hrtimer_cancel(&chip->stop_timer);
 	chip->state = val;
-#ifdef OPLUS_FEATURE_CHG_BASIC
-	pr_info("state = %d, time = %llums\n", chip->state, chip->vib_play_ms);
-#endif
+	pr_debug("state = %d, time = %llums\n", chip->state, chip->vib_play_ms);
 	mutex_unlock(&chip->lock);
 #ifdef OPLUS_FEATURE_CHG_BASIC
 	queue_work(system_unbound_wq, &chip->vib_work);

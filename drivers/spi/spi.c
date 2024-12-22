@@ -1058,13 +1058,11 @@ static int spi_transfer_one_message(struct spi_controller *ctlr,
 				ret = 0;
 				ms = 8LL * 1000LL * xfer->len;
 				do_div(ms, xfer->speed_hz);
-
-				#ifndef OPLUS_FEATURE_TP_BASIC
+#ifndef OPLUS_FEATURE_TP_BASIC
 				ms += ms + 200; /* some tolerance */
-				#else
+#else
 				ms += ms + 1500; /* some tolerance */
-				#endif /* OPLUS_FEATURE_TP_BASIC */
-
+#endif /* OPLUS_FEATURE_TP_BASIC */
 
 				if (ms > UINT_MAX)
 					ms = UINT_MAX;

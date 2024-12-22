@@ -424,7 +424,7 @@ static void request_end(struct fuse_conn *fc, struct fuse_req *req)
 		flush_bg_queue(fc);
 		spin_unlock(&fc->lock);
 	}
-	wake_up_sync(&req->waitq);
+	wake_up(&req->waitq);
 	if (req->end)
 		req->end(fc, req);
 put_request:
@@ -848,8 +848,7 @@ static int fuse_check_page(struct page *page)
 	       1 << PG_active |
 	       1 << PG_workingset |
 	       1 << PG_reclaim |
-	       1 << PG_waiters |
-	       LRU_GEN_MASK | LRU_REFS_MASK))) {
+	       1 << PG_waiters))) {
 		printk(KERN_WARNING "fuse: trying to steal weird page\n");
 		printk(KERN_WARNING "  page=%p index=%li flags=%08lx, count=%i, mapcount=%i, mapping=%p\n", page, page->index, page->flags, page_count(page), page_mapcount(page), page->mapping);
 		return 1;
@@ -1052,25 +1051,20 @@ static int fuse_copy_pages(struct fuse_copy_state *cs, unsigned nbytes,
 {
 	unsigned i;
 	struct fuse_req *req = cs->req;
-	int err;
 
-	if (req->ff)
-		spin_lock(&req->ff->fc->lock);
 	for (i = 0; i < req->num_pages && (nbytes || zeroing); i++) {
+		int err;
 		unsigned offset = req->page_descs[i].offset;
 		unsigned count = min(nbytes, req->page_descs[i].length);
 
 		err = fuse_copy_page(cs, &req->pages[i], offset, count,
 				     zeroing);
 		if (err)
-			goto err;
+			return err;
 
 		nbytes -= count;
 	}
-err:
-	if (req->ff)
-		spin_unlock(&req->ff->fc->lock);
-	return err;
+	return 0;
 }
 
 /* Copy a single argument in the request to/from userspace buffer */
@@ -1363,9 +1357,6 @@ static ssize_t fuse_dev_do_read(struct fuse_dev *fud, struct file *file,
 	clear_bit(FR_LOCKED, &req->flags);
 	if (!fpq->connected) {
 		err = (fc->aborted && fc->abort_err) ? -ECONNABORTED : -ENODEV;
-		/* Assign abnormal value to req->error when fpq disconnected */
-		if (req->in.h.opcode == FUSE_CANONICAL_PATH)
-			req->out.h.error = -ECONNABORTED;
 		goto out_end;
 	}
 	if (err) {
@@ -1987,12 +1978,8 @@ static ssize_t fuse_dev_do_write(struct fuse_dev *fud,
 
 	spin_lock(&fpq->lock);
 	clear_bit(FR_LOCKED, &req->flags);
-	if (!fpq->connected) {
-		/* Assign abnormal value to req->error when fpq disconnected */
-		if (req->in.h.opcode == FUSE_CANONICAL_PATH)
-			req->out.h.error = -ECONNABORTED;
+	if (!fpq->connected)
 		err = -ENOENT;
-	}
 	else if (err)
 		req->out.h.error = -EIO;
 	if (!test_bit(FR_PRIVATE, &req->flags))

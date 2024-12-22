@@ -1,9 +1,9 @@
 /************************************************************************************
 ** Copyright (C), 2008-2012, Oplus ., All rights reserved.
-** 
-** Description:  
+**
+** Description:
 **     change define of boot_mode here for other place to use it
-** Version: 1.0 
+** Version: 1.0
 ************************************************************************************/
 #ifndef _OPLUS_BOOT_H
 #define _OPLUS_BOOT_H

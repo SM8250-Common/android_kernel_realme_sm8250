@@ -2278,6 +2278,7 @@ done:
 #ifdef OPLUS_FEATURE_CHG_BASIC
 #define DWC3_SOFT_RESET_TIMEOUT 10
 #endif
+
 static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 {
 	u32			reg, reg1;

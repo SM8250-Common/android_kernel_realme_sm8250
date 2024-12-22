@@ -88,8 +88,9 @@ MODULE_PARM_DESC(ramoops_ecc,
 		"if non-zero, the option enables ECC support and specifies "
 		"ECC buffer size in bytes (1 is a special value, means 16 "
 		"bytes ECC)");
-#ifndef OPLUS_FEATURE_DUMPDEVICE 
-/*move this define to  pstore.h*/
+
+#ifndef OPLUS_FEATURE_DUMPDEVICE
+/*move this define to pstore.h*/
 struct ramoops_context {
 	struct persistent_ram_zone **dprzs;	/* Oops dump zones */
 	struct persistent_ram_zone *cprz;	/* Console zone */
@@ -113,7 +114,6 @@ struct ramoops_context {
 	unsigned int max_ftrace_cnt;
 	unsigned int ftrace_read_cnt;
 	unsigned int pmsg_read_cnt;
-	
 	struct pstore_info pstore;
 };
 #endif
@@ -298,9 +298,10 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 
 #ifdef OPLUS_FEATURE_DUMPDEVICE
 	if (!prz_ok(prz))
-		prz = ramoops_get_next_prz(&cxt->dprz, &cxt->device_info_read_cnt,
-					1, &record->id, &record->type,
-					PSTORE_TYPE_DEVICE_INFO, 0);
+		prz = ramoops_get_next_prz(&cxt->dprz,
+					   &cxt->device_info_read_cnt,
+					   1, &record->id, &record->type,
+					   PSTORE_TYPE_DEVICE_INFO, 0);
 #endif /* OPLUS_FEATURE_DUMPDEVICE */
 
 	/* ftrace is last since it may want to dynamically allocate memory. */
@@ -320,6 +321,7 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 					  GFP_KERNEL);
 			if (!tmp_prz)
 				return -ENOMEM;
+			prz = tmp_prz;
 			free_prz = true;
 
 			while (cxt->ftrace_read_cnt < cxt->max_ftrace_cnt) {
@@ -342,7 +344,6 @@ static ssize_t ramoops_pstore_read(struct pstore_record *record)
 					goto out;
 			}
 			record->id = 0;
-			prz = tmp_prz;
 		}
 	}
 
@@ -462,6 +463,17 @@ static int notrace ramoops_pstore_write(struct pstore_record *record)
 		return -ENOSPC;
 
 	prz = cxt->dprzs[cxt->dump_write_cnt];
+
+	/*
+	 * Since this is a new crash dump, we need to reset the buffer in
+	 * case it still has an old dump present. Without this, the new dump
+	 * will get appended, which would seriously confuse anything trying
+	 * to check dump file contents. Specifically, ramoops_read_kmsg_hdr()
+	 * expects to find a dump header in the beginning of buffer data, so
+	 * we must to reset the buffer values, in order to ensure that the
+	 * header will be written to the beginning of the buffer.
+	 */
+	persistent_ram_zap(prz);
 
 	/* Build header and append record contents. */
 	hlen = ramoops_write_kmsg_hdr(prz, record);
@@ -783,7 +795,10 @@ static int ramoops_probe(struct platform_device *pdev)
 
 	if (!pdata->mem_size || (!pdata->record_size && !pdata->console_size &&
 #ifdef OPLUS_FEATURE_DUMPDEVICE
-			!pdata->ftrace_size && !pdata->pmsg_size  && !pdata->device_info_size)) {
+			!pdata->ftrace_size && !pdata->pmsg_size &&
+			!pdata->device_info_size)) {
+#else
+			!pdata->ftrace_size && !pdata->pmsg_size)) {
 #endif /* OPLUS_FEATURE_DUMPDEVICE */
 		pr_err("The memory size and the record/console size must be "
 			"non-zero\n");
@@ -801,7 +816,8 @@ static int ramoops_probe(struct platform_device *pdev)
 		pdata->pmsg_size = rounddown_pow_of_two(pdata->pmsg_size);
 #ifdef OPLUS_FEATURE_DUMPDEVICE
 	if (pdata->device_info_size && !is_power_of_2(pdata->device_info_size))
-		pdata->device_info_size = rounddown_pow_of_two(pdata->device_info_size);
+		pdata->device_info_size =
+				rounddown_pow_of_two(pdata->device_info_size);
 #endif /* OPLUS_FEATURE_DUMPDEVICE */
 
 	cxt->size = pdata->mem_size;
@@ -822,7 +838,9 @@ static int ramoops_probe(struct platform_device *pdev)
 
 	dump_mem_sz = cxt->size - cxt->console_size - cxt->ftrace_size
 #ifdef OPLUS_FEATURE_DUMPDEVICE
-			- cxt->pmsg_size  - cxt->device_info_size;
+			- cxt->pmsg_size - cxt->device_info_size;
+#else
+			- cxt->pmsg_size;
 #endif /* OPLUS_FEATURE_DUMPDEVICE */
 	err = ramoops_init_przs("dump", dev, cxt, &cxt->dprzs, &paddr,
 				dump_mem_sz, cxt->record_size,
@@ -850,13 +868,14 @@ static int ramoops_probe(struct platform_device *pdev)
 				cxt->pmsg_size, 0);
 	if (err)
 		goto fail_init_mprz;
-	
+
 #ifdef OPLUS_FEATURE_DUMPDEVICE
 	err = ramoops_init_prz("devinfo", dev, cxt, &cxt->dprz, &paddr,
-                cxt->device_info_size, 0);
+				cxt->device_info_size, 0);
 	if (err)
 		goto fail_init_dprz;
 #endif /* OPLUS_FEATURE_DUMPDEVICE */
+
 	cxt->pstore.data = cxt;
 	/*
 	 * Prepare frontend flags based on which areas are initialized.

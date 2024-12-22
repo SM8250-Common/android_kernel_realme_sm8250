@@ -245,17 +245,10 @@ static int ufsf_read_dev_desc(struct ufsf_feature *ufsf, u8 selector)
 		  desc_buf[DEVICE_DESC_PARAM_EXT_UFS_FEATURE_SUP+2],
 		  desc_buf[DEVICE_DESC_PARAM_EXT_UFS_FEATURE_SUP+3]);
 
-#if defined(CONFIG_UFSHPB)
-	ufshpb_get_dev_info(ufsf, desc_buf);
-#endif
-
 #if defined(CONFIG_UFSTW)
 	ufstw_get_dev_info(ufsf, desc_buf);
 #endif
 
-#if defined(CONFIG_UFSHID)
-	ufshid_get_dev_info(ufsf, desc_buf);
-#endif
 	return 0;
 }
 
@@ -268,11 +261,6 @@ static int ufsf_read_geo_desc(struct ufsf_feature *ufsf, u8 selector)
 			     geo_buf, UFSF_QUERY_DESC_GEOMETRY_MAX_SIZE);
 	if (ret)
 		return ret;
-
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_NEED_INIT)
-		ufshpb_get_geo_info(ufsf, geo_buf);
-#endif
 
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_NEED_INIT)
@@ -296,11 +284,6 @@ static void ufsf_read_unit_desc(struct ufsf_feature *ufsf, int lun, u8 selector)
 	lu_enable = unit_buf[UNIT_DESC_PARAM_LU_ENABLE];
 	if (!lu_enable)
 		return;
-
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_NEED_INIT)
-		ufshpb_get_lu_info(ufsf, lun, unit_buf);
-#endif
 
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_NEED_INIT)
@@ -578,15 +561,6 @@ inline void ufsf_slave_configure(struct ufsf_feature *ufsf,
 		INFO_MSG("lun[%d] sdev(%p) q(%p) slave_conf_cnt(%d/%d)",
 			 (int)sdev->lun, sdev, sdev->request_queue,
 			 ufsf->slave_conf_cnt, ufsf->num_lu);
-
-#if defined(CONFIG_UFSHPB)
-		if (ufsf->num_lu == ufsf->slave_conf_cnt) {
-			if (ufshpb_get_state(ufsf) == HPB_NEED_INIT) {
-				INFO_MSG("wakeup ufshpb_init_handler");
-				wake_up(&ufsf->hpb_wait);
-			}
-		}
-#endif
 	}
 }
 
@@ -611,12 +585,6 @@ inline void ufsf_change_read10_debug_lun(struct ufsf_feature *ufsf,
 inline void ufsf_prep_fn(struct ufsf_feature *ufsf,
 			 struct ufshcd_lrb *lrbp)
 {
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT &&
-	    ufsf->issue_read10_debug == false)
-		ufshpb_prep_fn(ufsf, lrbp);
-#endif
-
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_PRESENT)
 		ufstw_prep_fn(ufsf, lrbp);
@@ -635,55 +603,24 @@ inline void ufsf_reset_lu(struct ufsf_feature *ufsf)
 
 inline void ufsf_reset_host(struct ufsf_feature *ufsf)
 {
-#if defined(CONFIG_UFSHPB)
-	INFO_MSG("run reset_host.. hpb_state(%d) -> HPB_RESET",
-		 ufshpb_get_state(ufsf));
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		ufshpb_reset_host(ufsf);
-#endif
-
 #if defined(CONFIG_UFSTW)
 	INFO_MSG("run reset_host.. tw_state(%d) -> TW_RESET",
 		 ufstw_get_state(ufsf));
 	if (ufstw_get_state(ufsf) == TW_PRESENT)
 		ufstw_reset_host(ufsf);
 #endif
-#if defined(CONFIG_UFSHID)
-	INFO_MSG("run reset_host.. hid_state(%d) -> HID_RESET",
-		 ufshid_get_state(ufsf));
-	if (ufshid_get_state(ufsf) == HID_PRESENT)
-		ufshid_reset_host(ufsf);
-#endif
 }
 
 inline void ufsf_init(struct ufsf_feature *ufsf)
 {
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_NEED_INIT) {
-		INFO_MSG("init start.. hpb_state (%d)", HPB_NEED_INIT);
-		schedule_work(&ufsf->hpb_init_work);
-	}
-#endif
-
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_NEED_INIT)
 		ufstw_init(ufsf);
-#endif
-#if defined(CONFIG_UFSHID)
-	if (ufshid_get_state(ufsf) == HID_NEED_INIT)
-		ufshid_init(ufsf);
 #endif
 }
 
 inline void ufsf_reset(struct ufsf_feature *ufsf)
 {
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_RESET) {
-		INFO_MSG("reset start.. hpb_state %d", HPB_RESET);
-		ufshpb_reset(ufsf);
-	}
-#endif
-
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_RESET &&
 	    !ufsf->hba->pm_op_in_progress) {
@@ -692,26 +629,13 @@ inline void ufsf_reset(struct ufsf_feature *ufsf)
 		ufstw_reset(ufsf, false);
 	}
 #endif
-#if defined(CONFIG_UFSHID)
-	if (ufshid_get_state(ufsf) == HID_RESET)
-		ufshid_reset(ufsf);
-#endif
 }
 
 inline void ufsf_remove(struct ufsf_feature *ufsf)
 {
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		ufshpb_remove(ufsf, HPB_NEED_INIT);
-#endif
-
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == TW_PRESENT)
 		ufstw_remove(ufsf);
-#endif
-#if defined(CONFIG_UFSHID)
-	if (ufshid_get_state(ufsf) == HID_PRESENT)
-		ufshid_remove(ufsf);
 #endif
 }
 
@@ -719,87 +643,24 @@ inline void ufsf_set_init_state(struct ufsf_feature *ufsf)
 {
 	ufsf->slave_conf_cnt = 0;
 	ufsf->issue_read10_debug = false;
-#if defined(CONFIG_UFSHPB)
-	ufshpb_set_state(ufsf, HPB_NEED_INIT);
-	INIT_WORK(&ufsf->hpb_init_work, ufshpb_init_handler);
-	init_waitqueue_head(&ufsf->hpb_wait);
-#endif
 #if defined(CONFIG_UFSW)
 	ufstw_set_state(ufsf, TW_NEED_INIT);
-#endif
-#if defined(CONFIG_UFSHID)
-	ufshid_set_state(ufsf, HID_NEED_INIT);
 #endif
 }
 
 inline void ufsf_resume(struct ufsf_feature *ufsf)
 {
-#if defined(CONFIG_UFSHPB)
-	if (ufshpb_get_state(ufsf) == HPB_SUSPEND ||
-	    ufshpb_get_state(ufsf) == HPB_PRESENT) {
-		if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-			WARN_MSG("warning.. hpb state PRESENT in resuming");
-		ufshpb_resume(ufsf);
-	}
-#endif
-
 #if defined(CONFIG_UFSTW)
 	if (ufstw_get_state(ufsf) == HPB_RESET)
 		ufstw_reset(ufsf, true);
 #endif
 }
 
-inline void ufsf_on_idle(struct ufsf_feature *ufsf, bool scsi_req)
-{
-#if defined(CONFIG_UFSHID)
-	if (ufshid_get_state(ufsf) == HID_PRESENT &&
-	    !ufsf->hba->outstanding_reqs && scsi_req)
-		ufshid_on_idle(ufsf);
-#endif
-}
+inline void ufsf_on_idle(struct ufsf_feature *ufsf, bool scsi_req) {}
 
 /*
  * Wrapper functions for ufshpb.
  */
-#if defined(CONFIG_UFSHPB)
-inline int ufsf_hpb_prepare_pre_req(struct ufsf_feature *ufsf,
-				    struct scsi_cmnd *cmd, int lun)
-{
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		return ufshpb_prepare_pre_req(ufsf, cmd, lun);
-	return -ENODEV;
-}
-
-inline int ufsf_hpb_prepare_add_lrbp(struct ufsf_feature *ufsf, int add_tag)
-{
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		return ufshpb_prepare_add_lrbp(ufsf, add_tag);
-	return -ENODEV;
-}
-
-inline void ufsf_hpb_end_pre_req(struct ufsf_feature *ufsf,
-				 struct request *req)
-{
-	ufshpb_end_pre_req(ufsf, req);
-}
-
-inline void ufsf_hpb_noti_rb(struct ufsf_feature *ufsf, struct ufshcd_lrb *lrbp)
-{
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		ufshpb_rsp_upiu(ufsf, lrbp);
-}
-
-inline void ufsf_hpb_suspend(struct ufsf_feature *ufsf)
-{
-	/*
-	 * if suspend failed, pm could call the suspend function again,
-	 * in this case, ufshpb state already had been changed to SUSPEND state.
-	 * so, we will not call ufshpb_suspend.
-	 */
-	if (ufshpb_get_state(ufsf) == HPB_PRESENT)
-		ufshpb_suspend(ufsf);
-}
-#else
 inline int ufsf_hpb_prepare_pre_req(struct ufsf_feature *ufsf,
 				    struct scsi_cmnd *cmd, int lun)
 {
@@ -816,7 +677,6 @@ inline void ufsf_hpb_end_pre_req(struct ufsf_feature *ufsf,
 inline void ufsf_hpb_noti_rb(struct ufsf_feature *ufsf,
 			     struct ufshcd_lrb *lrbp) {}
 inline void ufsf_hpb_suspend(struct ufsf_feature *ufsf) {}
-#endif
 
 #if defined(CONFIG_UFSTW)
 inline void ufsf_tw_enable(struct ufsf_feature *ufsf, bool enable)

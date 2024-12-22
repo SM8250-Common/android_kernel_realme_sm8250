@@ -11166,11 +11166,12 @@ struct afe_spkr_prot_calib_get_resp {
 #define DSM_TX_PORT_ID      AFE_PORT_ID_TERTIARY_MI2S_TX
 
 struct afe_dsm_param_array {
-    uint32_t    data[112];
+	uint32_t    data[112];
 } __packed;
+
 struct afe_dsm_get_param {
 	struct param_hdr_v3 pdata;
-    struct afe_dsm_param_array param;
+	struct afe_dsm_param_array param;
 } __packed;
 
 struct afe_dsm_get_resp {
@@ -11178,7 +11179,6 @@ struct afe_dsm_get_resp {
 	struct param_hdr_v3 pdata;
 	struct afe_dsm_param_array param;
 } __packed;
-
 #endif
 #endif /* OPLUS_ARCH_EXTENDS */
 
