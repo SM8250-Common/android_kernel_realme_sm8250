@@ -247,7 +247,7 @@ static const struct vadc_map_pt adcmap_batt_therm_100k_6125[] = {
  * Alium.
  */
 #ifdef OPLUS_FEATURE_CHG_BASIC
-	static const struct vadc_map_pt adcmap_batt_therm_30k[] = {
+static const struct vadc_map_pt adcmap_batt_therm_30k[] = {
 	{	1623	,	-400	},
 	{	1600	,	-380	},
 	{	1575	,	-360	},
@@ -318,9 +318,9 @@ static const struct vadc_map_pt adcmap_batt_therm_100k_6125[] = {
 	{	323 	,	940 },
 	{	320 	,	960 },
 	{	318 	,	980 },
-	};
+};
 #else
-	static const struct vadc_map_pt adcmap_batt_therm_30k[] = {
+static const struct vadc_map_pt adcmap_batt_therm_30k[] = {
 	{1864,	-400},
 	{1863,	-380},
 	{1861,	-360},
@@ -391,9 +391,8 @@ static const struct vadc_map_pt adcmap_batt_therm_100k_6125[] = {
 	{349,	940},
 	{332,	960},
 	{315,	980}
-	};
+};
 #endif
-
 
 /*
  * Voltage to temperature table for 30k pull up for bat_therm with
@@ -1497,17 +1496,8 @@ int qcom_vadc_hw_scale(enum vadc_scale_fn_type scaletype,
 		return qcom_vadc_scale_hw_calib_therm(prescale, data,
 						adc_code, result);
 	case SCALE_HW_CALIB_BATT_THERM_100K:
-#ifdef OPLUS_FEATURE_CHG_BASIC
-		if (data->battemp_for_adc == 1) {
-			return qcom_vadc_scale_hw_calib_volt(prescale,
-					data,adc_code, result);
-		} else {
-#endif
-			return qcom_vadc_scale_hw_calib_batt_therm_100(prescale,
+		return qcom_vadc_scale_hw_calib_batt_therm_100(prescale,
 					data, lut_index, adc_code, result);
-#ifdef OPLUS_FEATURE_CHG_BASIC
-		}
-#endif
 	case SCALE_HW_CALIB_BATT_THERM_30K:
 		return qcom_vadc_scale_hw_calib_batt_therm_30(prescale,
 					data, lut_index, adc_code, result);

@@ -491,8 +491,9 @@ static void pstore_console_write(struct console *con, const char *s, unsigned c)
 	record.size = c;
 	psinfo->write(&record);
 }
+
 #ifdef OPLUS_FEATURE_DUMPDEVICE
-static void  pstore_console_init(void )
+static void pstore_console_init(void)
 {
 	size_t oldsize;
 	size_t size =0;
@@ -517,9 +518,10 @@ static void  pstore_console_init(void )
 
 	psinfo->write(&record);
 
-	psinfo->bufsize = oldsize ;
+	psinfo->bufsize = oldsize;
 }
 #endif
+
 static struct console pstore_console = {
 	.name	= "pstore",
 	.write	= pstore_console_write,

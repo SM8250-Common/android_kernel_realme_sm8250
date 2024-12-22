@@ -6,8 +6,6 @@
 #include <linux/soc/qcom/qmi.h>
 
 #ifdef OPLUS_FEATURE_WIFI_BDF
-//
-//
 #include <soc/oplus/oplus_project.h>
 #include <linux/fs.h>
 #endif /* OPLUS_FEATURE_WIFI_BDF */
@@ -597,10 +595,10 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 #ifdef OPLUS_FEATURE_WIFI_BDF
 // check if read bdf is not complete through compare the size with odm/etc/wifi bdf file
 // return 0 if everything ok, otherwise return a non-zero value
-#define FILE_NAME_LENGTH                    128
-#define BDF_FILEPATH                         "/mnt/vendor/persist/"
-#define BDF_ODM_FILEPATH                         "/odm/etc/wifi/"
-#define BDF_VERSION_FILE                         "bin_version"
+#define FILE_NAME_LENGTH	128
+#define BDF_FILEPATH		"/mnt/vendor/persist/"
+#define BDF_ODM_FILEPATH	"/odm/etc/wifi/"
+#define BDF_VERSION_FILE	"bin_version"
 
 /* string is in decimal */
 static bool get_integer_from_string(const u8 *str, int *pint)
@@ -641,13 +639,7 @@ static int read_file(char *file_name, u8 *file_buf)
 		return -ENOENT;
 	}
 
-#if 1
 	inode = filp->f_inode;
-#else
-	/* reserved for linux earlier verion */
-	inode = filp->f_dentry->d_inode;
-#endif
-
 	file_len = inode->i_size;
 
 	old_fs = get_fs();
@@ -792,15 +784,6 @@ request_bdf:
 	remaining = fw_entry->size;
 
 bypass_bdf:
-    #ifdef OPLUS_FEATURE_WIFI_DCS_SWITCH
-    //Add for wifi switch monitor
-	if (bdf_type == CNSS_BDF_REGDB) {
-		set_bit(CNSS_LOAD_REGDB_SUCCESS, &plat_priv->loadRegdbState);
-	} else if (bdf_type == CNSS_BDF_ELF){
-		set_bit(CNSS_LOAD_BDF_SUCCESS, &plat_priv->loadBdfState);
-	}
-    #endif /* OPLUS_FEATURE_WIFI_DCS_SWITCH */
-
 	cnss_pr_dbg("Downloading BDF: %s, size: %u\n", filename, remaining);
 
 #ifdef OPLUS_FEATURE_WIFI_BDF
@@ -889,14 +872,6 @@ err_send:
 	if (bdf_type != CNSS_BDF_DUMMY)
 		release_firmware(fw_entry);
 err_req_fw:
-#ifdef OPLUS_FEATURE_WIFI_DCS_SWITCH
-    //Add for wifi switch monitor
-	if (bdf_type == CNSS_BDF_REGDB) {
-		set_bit(CNSS_LOAD_REGDB_FAIL, &plat_priv->loadRegdbState);
-	} else if (bdf_type == CNSS_BDF_ELF){
-		set_bit(CNSS_LOAD_BDF_FAIL, &plat_priv->loadBdfState);
-	}
-#endif /* OPLUS_FEATURE_WIFI_DCS_SWITCH */
 	if (bdf_type != CNSS_BDF_REGDB)
 		CNSS_QMI_ASSERT();
 
@@ -2284,19 +2259,17 @@ static void cnss_wlfw_respond_get_info_ind_cb(struct qmi_handle *qmi_wlfw,
 	struct cnss_plat_data *plat_priv =
 		container_of(qmi_wlfw, struct cnss_plat_data, qmi_wlfw);
 	const struct wlfw_respond_get_info_ind_msg_v01 *ind_msg = data;
-        #ifndef OPLUS_BUG_STABILITY
+
 	cnss_pr_vdbg("Received QMI WLFW respond get info indication\n");
-        #endif /*OPLUS_BUG_STABILITY*/
 
 	if (!txn) {
 		cnss_pr_err("Spurious indication\n");
 		return;
 	}
-        #ifndef OPLUS_BUG_STABILITY
+
 	cnss_pr_vdbg("Extract message with event length: %d, type: %d, is last: %d, seq no: %d\n",
 		     ind_msg->data_len, ind_msg->type,
 		     ind_msg->is_last, ind_msg->seq_no);
-        #endif /*OPLUS_BUG_STABILITY*/
 
 	if (plat_priv->get_info_cb_ctx && plat_priv->get_info_cb)
 		plat_priv->get_info_cb(plat_priv->get_info_cb_ctx,

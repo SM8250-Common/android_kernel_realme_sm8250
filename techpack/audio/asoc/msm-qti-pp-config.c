@@ -1563,21 +1563,21 @@ int adm_get_all_mute_pp_param(void)
 	for (be_idx = 0; be_idx < MSM_BACKEND_DAI_MAX; be_idx++) {
 		msm_pcm_routing_get_bedai_info(be_idx, &msm_bedai);
 		if ((be_idx < MSM_BACKEND_DAI_MAX) && msm_bedai.active) {
-			pr_err("%s :be_idx:%x, port_id:0x%x\n",__func__, be_idx, msm_bedai.port_id);
-			ret = adm_get_all_mute_pp_param_from_port(msm_bedai.port_id);
+			pr_err("%s :be_idx:%x, port_id:0x%x\n", __func__,
+					be_idx, msm_bedai.port_id);
+			ret = adm_get_all_mute_pp_param_from_port(
+					msm_bedai.port_id);
 		}
 	}
 	return ret;
 }
 
 static int mute_detect_result_get(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+				  struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
 	int be_idx = 0;
 	struct msm_pcm_routing_bdai_data msm_bedai;
-
-	//ret = get_voice_mute_state(RTAC_CVP, VSS_ICOMMON_CMD_GET_PARAM_V3, MUTE_DETECT_START_PARAM_ID);
 
 	ucontrol->value.integer.value[0] = ret;
 
@@ -1589,23 +1589,24 @@ static int mute_detect_result_get(struct snd_kcontrol *kcontrol,
 	for (be_idx = 0; be_idx < MSM_BACKEND_DAI_MAX; be_idx++) {
 		msm_pcm_routing_get_bedai_info(be_idx, &msm_bedai);
 		if ((be_idx < MSM_BACKEND_DAI_MAX) && msm_bedai.active) {
-			pr_err("%s :be_idx:%x, port_id:0x%x\n",__func__, be_idx, msm_bedai.port_id);
-			ret = adm_get_all_mute_pp_param_from_port(msm_bedai.port_id);
+			pr_err("%s :be_idx:%x, port_id:0x%x\n", __func__,
+					be_idx, msm_bedai.port_id);
+			ret = adm_get_all_mute_pp_param_from_port(
+					msm_bedai.port_id);
 		}
 	}
 	return ret;
 }
 
 static int mute_detect_result_set(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+				  struct snd_ctl_elem_value *ucontrol)
 {
-	//ktv_afe_reverb_half_demping_ctrl = ucontrol->value.integer.value[0];
 	pr_err("%s : enter: %d\n",__func__, ucontrol->value.integer.value[0]);
 	return 0;
 }
 
 static int mute_detect_voice_result_get(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+					struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
 
@@ -1621,12 +1622,9 @@ static int mute_detect_voice_result_get(struct snd_kcontrol *kcontrol,
 	return ret;
 }
 
-
-
 static int auddet_ena_set(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+			  struct snd_ctl_elem_value *ucontrol)
 {
-	//ktv_afe_reverb_half_demping_ctrl = ucontrol->value.integer.value[0];
 	int ret = 0;
 	int ena_val = 0;
 	int be_idx = 0;
@@ -1638,10 +1636,13 @@ static int auddet_ena_set(struct snd_kcontrol *kcontrol,
 	for (be_idx = 0; be_idx < MSM_BACKEND_DAI_MAX; be_idx++) {
 		msm_pcm_routing_get_bedai_info(be_idx, &msm_bedai);
 		if ((be_idx < MSM_BACKEND_DAI_MAX) && msm_bedai.active) {
-			pr_err("%s :be_idx:%x, port_id:0x%x\n",__func__, be_idx, msm_bedai.port_id);
-			ret = adm_set_auddet_enable_param(msm_bedai.port_id, (uint8_t)ena_val);
+			pr_err("%s :be_idx:%x, port_id:0x%x\n", __func__,
+					be_idx, msm_bedai.port_id);
+			ret = adm_set_auddet_enable_param(msm_bedai.port_id,
+					(uint8_t)ena_val);
 			if (ret) {
-				pr_err("%s: Failed to set auddet enable, err %d\n", __func__, ret);
+				pr_err("%s: Failed to set auddet enable, err %d\n",
+						__func__, ret);
 			} else {
 				pr_err("%s: set auddet enable ok\n", __func__);
 				g_auddet_ena_val = ena_val;
@@ -1653,7 +1654,7 @@ static int auddet_ena_set(struct snd_kcontrol *kcontrol,
 }
 
 static int auddet_ena_get(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+			  struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
 	pr_info("%s : enter: %d\n",__func__, g_auddet_ena_val);
@@ -1663,7 +1664,7 @@ static int auddet_ena_get(struct snd_kcontrol *kcontrol,
 }
 
 static int auddet_voice_ena_set(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+				struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
 	u8 ena_val = 0;
@@ -1674,7 +1675,8 @@ static int auddet_voice_ena_set(struct snd_kcontrol *kcontrol,
 	ret = voice_set_cvp_auddet_param(ena_val);
 
 	if (ret) {
-		pr_err("%s: Failed to set auddet enable, err %d\n", __func__, ret);
+		pr_err("%s: Failed to set auddet enable, err %d\n", __func__,
+				ret);
 	} else {
 		pr_err("%s: set auddet enable ok\n", __func__);
 		g_auddet_ena_val = ena_val;
@@ -1684,7 +1686,7 @@ static int auddet_voice_ena_set(struct snd_kcontrol *kcontrol,
 }
 
 static int auddet_voice_ena_get(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+				struct snd_ctl_elem_value *ucontrol)
 {
 	int ret = 0;
 	pr_info("%s : enter: %d\n",__func__, g_auddet_ena_val);
@@ -1693,31 +1695,28 @@ static int auddet_voice_ena_get(struct snd_kcontrol *kcontrol,
 	return ret;
 }
 
-
 static int mute_detect_voice_result_set(struct snd_kcontrol *kcontrol,
-						struct snd_ctl_elem_value *ucontrol)
+					struct snd_ctl_elem_value *ucontrol)
 {
-	//ktv_afe_reverb_half_demping_ctrl = ucontrol->value.integer.value[0];
 	pr_err("%s : enter: %d\n",__func__, ucontrol->value.integer.value[0]);
 	return 0;
 }
 
 static const struct snd_kcontrol_new oplus_auddet_mixer_controls[] = {
-    SOC_SINGLE_EXT_TLV("MuteDetectResult", SND_SOC_NOPM, 0,
-    INT_AUDDET_MAX_VAL, 0, mute_detect_result_get,
-    mute_detect_result_set, auddet_max_value),
-    SOC_SINGLE_EXT_TLV("MuteDetectVoiceResult", SND_SOC_NOPM, 0,
-    INT_AUDDET_MAX_VAL, 0, mute_detect_voice_result_get,
-    mute_detect_voice_result_set, auddet_max_value),
-    SOC_SINGLE_EXT_TLV("AUDDET_ENA", SND_SOC_NOPM, 0,
-    INT_AUDDET_MAX_VAL, 0, auddet_ena_get,
-    auddet_ena_set, auddet_max_value),
-    SOC_SINGLE_EXT_TLV("AUDDET_VOICE_ENA", SND_SOC_NOPM, 0,
-    INT_AUDDET_MAX_VAL, 0, auddet_voice_ena_get,
-    auddet_voice_ena_set, auddet_max_value),
+	SOC_SINGLE_EXT_TLV("MuteDetectResult", SND_SOC_NOPM, 0,
+	INT_AUDDET_MAX_VAL, 0, mute_detect_result_get,
+	mute_detect_result_set, auddet_max_value),
+	SOC_SINGLE_EXT_TLV("MuteDetectVoiceResult", SND_SOC_NOPM, 0,
+	INT_AUDDET_MAX_VAL, 0, mute_detect_voice_result_get,
+	mute_detect_voice_result_set, auddet_max_value),
+	SOC_SINGLE_EXT_TLV("AUDDET_ENA", SND_SOC_NOPM, 0,
+	INT_AUDDET_MAX_VAL, 0, auddet_ena_get,
+	auddet_ena_set, auddet_max_value),
+	SOC_SINGLE_EXT_TLV("AUDDET_VOICE_ENA", SND_SOC_NOPM, 0,
+	INT_AUDDET_MAX_VAL, 0, auddet_voice_ena_get,
+	auddet_voice_ena_set, auddet_max_value),
 };
 #endif /* OPLUS_FEATURE_AUDIODETECT */
-
 
 static const struct snd_kcontrol_new eq_enable_mixer_controls[] = {
 	SOC_SINGLE_EXT("MultiMedia1 EQ Enable", SND_SOC_NOPM,

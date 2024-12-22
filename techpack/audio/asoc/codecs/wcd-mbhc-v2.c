@@ -592,14 +592,12 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		if (wcd_cancel_btn_work(mbhc)) {
 			pr_debug("%s: button press is canceled\n", __func__);
 		} else if (mbhc->buttons_pressed) {
-			#ifndef OPLUS_ARCH_EXTENDS
 			pr_debug("%s: release of button press%d\n",
 				 __func__, jack_type);
+			#ifndef OPLUS_ARCH_EXTENDS
 			wcd_mbhc_jack_report(mbhc, &mbhc->button_jack, 0,
 					    mbhc->buttons_pressed);
 			#else /* OPLUS_ARCH_EXTENDS */
-			pr_info("%s: release of button press%d\n",
-				 __func__, jack_type);
 			if (mbhc->buttons_pressed & (SND_JACK_BTN_2 | SND_JACK_BTN_3)) {
 				wcd_mbhc_jack_report(mbhc, &mbhc->button_jack, 0,
 					    mbhc->buttons_pressed);
@@ -627,14 +625,8 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 
 		mbhc->hph_type = WCD_MBHC_HPH_NONE;
 		mbhc->zl = mbhc->zr = 0;
-		#ifndef OPLUS_ARCH_EXTENDS
 		pr_debug("%s: Reporting removal %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
-		#else /* OPLUS_ARCH_EXTENDS */
-		pr_info("%s: Reporting removal %d(%x)\n", __func__,
-			 jack_type, mbhc->hph_status);
-		#endif /* OPLUS_ARCH_EXTENDS */
-
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				mbhc->hph_status, WCD_MBHC_JACK_MASK);
 		wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
@@ -717,7 +709,6 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		#ifdef OPLUS_FEATURE_IMPEDANCE_MATCH
 		if (mbhc->enable_hp_impedance_detect) {
 		#endif /* OPLUS_FEATURE_IMPEDANCE_MATCH */
-
 		if (mbhc->mbhc_cb->hph_pa_on_status)
 			is_pa_on = mbhc->mbhc_cb->hph_pa_on_status(component);
 
@@ -783,16 +774,13 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 		    mbhc->mbhc_cb->mbhc_micb_ramp_control)
 			mbhc->mbhc_cb->mbhc_micb_ramp_control(component, false);
 
-		#ifndef OPLUS_ARCH_EXTENDS
 		pr_debug("%s: Reporting insertion %d(%x)\n", __func__,
 			 jack_type, mbhc->hph_status);
+		#ifndef OPLUS_ARCH_EXTENDS
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				    (mbhc->hph_status | SND_JACK_MECHANICAL),
 				    WCD_MBHC_JACK_MASK);
 		#else /* OPLUS_ARCH_EXTENDS */
-		pr_info("%s: [1:headphone 3:headset 4:lineout]\n", __func__);
-		pr_info("%s: Reporting insertion jack_type=%d, (hph_status=0x%x)\n",
-			__func__, jack_type, mbhc->hph_status);
 		if (jack_type != SND_JACK_LINEOUT) {
 			wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				(mbhc->hph_status | SND_JACK_MECHANICAL),
@@ -860,13 +848,8 @@ void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 		return;
 	}
 
-	#ifndef OPLUS_ARCH_EXTENDS
 	pr_debug("%s: enter current_plug(%d) new_plug(%d)\n",
 		 __func__, mbhc->current_plug, plug_type);
-	#else /* OPLUS_ARCH_EXTENDS */
-	pr_info("%s: enter current_plug(%d) new_plug(%d)\n",
-		 __func__, mbhc->current_plug, plug_type);
-	#endif /* OPLUS_ARCH_EXTENDS */
 
 	WCD_MBHC_RSC_ASSERT_LOCKED(mbhc);
 
@@ -938,11 +921,7 @@ void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 		     mbhc->current_plug, plug_type);
 	}
 exit:
-	#ifndef OPLUS_ARCH_EXTENDS
 	pr_debug("%s: leave\n", __func__);
-	#else /* OPLUS_ARCH_EXTENDS */
-	pr_info("%s: leave\n", __func__);
-	#endif /* OPLUS_ARCH_EXTENDS */
 }
 EXPORT_SYMBOL(wcd_mbhc_find_plug_and_report);
 
@@ -1170,13 +1149,6 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		cancel_delayed_work_sync(&mbhc->mech_irq_trigger_dwork);
 	}
 	#endif /* OPLUS_ARCH_EXTENDS */
-#ifdef OPLUS_ARCH_EXTENDS
-#undef pr_debug
-#define pr_debug pr_info
-
-#undef dev_dbg
-#define dev_dbg dev_info
-#endif /* OPLUS_ARCH_EXTENDS */
 
 	dev_dbg(component->dev, "%s: enter\n", __func__);
 	WCD_MBHC_RSC_LOCK(mbhc);
@@ -1268,12 +1240,13 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		if (mbhc->mbhc_fn)
 			mbhc->mbhc_fn->wcd_mbhc_detect_plug_type(mbhc);
 		#else /* OPLUS_ARCH_EXTENDS */
-		if (mbhc->mbhc_fn){
-		    if (mbhc->mbhc_cfg->enable_usbc_analog) {
-		        mbhc->mbhc_fn->wcd_mbhc_detect_plug_type(mbhc);
-		    }else {
-		        schedule_delayed_work(&mbhc->hp_detect_work, msecs_to_jiffies(400));
-		    }
+		if (mbhc->mbhc_fn) {
+			if (mbhc->mbhc_cfg->enable_usbc_analog) {
+				mbhc->mbhc_fn->wcd_mbhc_detect_plug_type(mbhc);
+			} else {
+				schedule_delayed_work(&mbhc->hp_detect_work,
+						msecs_to_jiffies(400));
+			}
 		}
 		#endif /* OPLUS_ARCH_EXTENDS */
 	} else if ((mbhc->current_plug != MBHC_PLUG_TYPE_NONE)
@@ -1315,6 +1288,9 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 			mbhc->is_extn_cable = false;
 			jack_type = SND_JACK_LINEOUT;
 			break;
+		case MBHC_PLUG_TYPE_ANC_HEADPHONE:
+			jack_type = SND_JACK_ANC_HEADPHONE;
+			break;
 		default:
 			pr_info("%s: Invalid current plug: %d\n",
 				__func__, mbhc->current_plug);
@@ -1330,13 +1306,15 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 
 		#ifdef OPLUS_ARCH_EXTENDS
 		if (mbhc->mbhc_cb->micbias_enable_status) {
-			micbias2 = mbhc->mbhc_cb->micbias_enable_status(mbhc, MIC_BIAS_2);
+			micbias2 = mbhc->mbhc_cb->micbias_enable_status(mbhc,
+					MIC_BIAS_2);
 		}
 
 		if (micbias2) {
 			if (mbhc->mbhc_cb->mbhc_micbias_control) {
 				//for wcd93xx codec
-				pr_info("%s: force micbias2 disable.\n", __func__);
+				pr_info("%s: force micbias2 disable.\n",
+						__func__);
 				WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MICB_CTRL, 0);
 			}
 		}
@@ -1399,11 +1377,6 @@ static irqreturn_t wcd_mbhc_mech_plug_detect_irq(int irq, void *data)
 	int r = IRQ_HANDLED;
 	struct wcd_mbhc *mbhc = data;
 
-#ifdef OPLUS_ARCH_EXTENDS
-#undef pr_debug
-#define pr_debug pr_info
-#endif /* OPLUS_ARCH_EXTENDS */
-
 	pr_debug("%s: enter\n", __func__);
 	if (mbhc == NULL) {
 		pr_err("%s: NULL irq data\n", __func__);
@@ -1417,7 +1390,6 @@ static irqreturn_t wcd_mbhc_mech_plug_detect_irq(int irq, void *data)
 		wcd_mbhc_swch_irq_handler(mbhc);
 		mbhc->mbhc_cb->lock_sleep(mbhc, false);
 	}
-
 	pr_debug("%s: leave %d\n", __func__, r);
 	return r;
 }
@@ -1428,10 +1400,6 @@ int wcd_mbhc_get_button_mask(struct wcd_mbhc *mbhc)
 	int btn;
 
 	btn = mbhc->mbhc_cb->map_btn_code_to_num(mbhc->component);
-
-	#ifdef OPLUS_ARCH_EXTENDS
-	pr_info("%s: btn is %d", __func__, btn);
-	#endif /* OPLUS_ARCH_EXTENDS */
 
 	switch (btn) {
 	case 0:
@@ -1465,11 +1433,6 @@ static void wcd_btn_lpress_fn(struct work_struct *work)
 	struct delayed_work *dwork;
 	struct wcd_mbhc *mbhc;
 	s16 btn_result = 0;
-
-#ifdef OPLUS_ARCH_EXTENDS
-#undef pr_debug
-#define pr_debug pr_info
-#endif /* OPLUS_ARCH_EXTENDS */
 
 	pr_debug("%s: Enter\n", __func__);
 
@@ -1516,11 +1479,6 @@ static irqreturn_t wcd_mbhc_btn_press_handler(int irq, void *data)
 	struct wcd_mbhc *mbhc = data;
 	int mask;
 	unsigned long msec_val;
-
-#ifdef OPLUS_ARCH_EXTENDS
-#undef pr_debug
-#define pr_debug pr_info
-#endif /* OPLUS_ARCH_EXTENDS */
 
 	pr_debug("%s: enter\n", __func__);
 	complete(&mbhc->btn_press_compl);
@@ -1571,11 +1529,6 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 {
 	struct wcd_mbhc *mbhc = data;
 	int ret;
-
-#ifdef OPLUS_ARCH_EXTENDS
-#undef pr_debug
-#define pr_debug pr_info
-#endif /* OPLUS_ARCH_EXTENDS */
 
 	pr_debug("%s: enter\n", __func__);
 	WCD_MBHC_RSC_LOCK(mbhc);
@@ -1735,10 +1688,7 @@ static int wcd_mbhc_initialise(struct wcd_mbhc *mbhc)
 		#ifndef OPLUS_ARCH_EXTENDS
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_L_DET_PULL_UP_CTRL, 3);
 		#else /* OPLUS_ARCH_EXTENDS */
-		{
-			pr_info("%s: default disable pull up for detection\n", __func__);
-			WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_L_DET_PULL_UP_CTRL, 0);
-		}
+		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_HS_L_DET_PULL_UP_CTRL, 0);
 		#endif /* OPLUS_ARCH_EXTENDS */
 
 	/* Configure for moisture detection when duty cycle is not enabled.
@@ -1961,11 +1911,7 @@ static int wcd_mbhc_usbc_ana_event_handler(struct notifier_block *nb,
 	if (!mbhc)
 		return -EINVAL;
 
-	#ifndef OPLUS_ARCH_EXTENDS
 	dev_dbg(mbhc->component->dev, "%s: mode = %lu\n", __func__, mode);
-	#else /* OPLUS_ARCH_EXTENDS */
-	dev_info(mbhc->component->dev, "%s: mode = %lu\n", __func__, mode);
-	#endif /* OPLUS_ARCH_EXTENDS */
 
 	#ifdef OPLUS_ARCH_EXTENDS
 	if (mbhc->use_usbc_detect)
@@ -2185,7 +2131,6 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	u32 cross_conn = 0;
 	const char *mbhc_cross_conn = "oplus,mbhc-check-cross-conn";
 	#endif /* OPLUS_ARCH_EXTENDS */
-
 	#ifdef OPLUS_ARCH_EXTENDS
 	u32 check_irq_en = 0;
 	const char *mbhc_check_irq_en = "oplus,mbhc-check-irq-en";
@@ -2194,8 +2139,10 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	#endif /* OPLUS_ARCH_EXTENDS */
 	#ifdef OPLUS_ARCH_EXTENDS
 	u32 headset_bias_alwayon = 0;
-	const char *mbhc_headset_bias_alwayon = "oplus,mbhc-headset-bias-alwayon";
+	const char *mbhc_headset_bias_alwayon =
+			"oplus,mbhc-headset-bias-alwayon";
 	#endif /* OPLUS_ARCH_EXTENDS */
+
 	pr_debug("%s: enter\n", __func__);
 
 	ret = of_property_read_u32(card->dev->of_node, hph_switch, &hph_swh);
@@ -2241,13 +2188,15 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 
 	#ifdef OPLUS_ARCH_EXTENDS
 	ret = of_property_read_u32(card->dev->of_node, mbhc_cross_conn,
-				&cross_conn);
+				   &cross_conn);
 	if (ret) {
 		dev_info(card->dev,
-			"%s: missing %s in dt node\n", __func__, mbhc_cross_conn);
+				"%s: missing %s in dt node\n", __func__,
+				mbhc_cross_conn);
 		mbhc->need_cross_conn = false;
 	} else {
-		dev_info(card->dev, "%s: cross_conn %d\n", __func__, cross_conn);
+		dev_info(card->dev, "%s: cross_conn %d\n", __func__,
+				cross_conn);
 		if (cross_conn) {
 			mbhc->need_cross_conn = true;
 		} else {
@@ -2258,13 +2207,15 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 
 	#ifdef OPLUS_ARCH_EXTENDS
 	ret = of_property_read_u32(card->dev->of_node, mbhc_check_irq_en,
-				&check_irq_en);
+				   &check_irq_en);
 	if (ret) {
 		dev_info(card->dev,
-			"%s: missing %s in dt node\n", __func__, mbhc_check_irq_en);
+				"%s: missing %s in dt node\n", __func__,
+				mbhc_check_irq_en);
 		mbhc->irq_trigger_enable = false;
 	} else {
-		dev_info(card->dev, "%s: irq_trigger_enable %d\n", __func__, check_irq_en);
+		dev_info(card->dev, "%s: irq_trigger_enable %d\n", __func__,
+				check_irq_en);
 		if (check_irq_en) {
 			mbhc->irq_trigger_enable= true;
 		} else {
@@ -2272,13 +2223,15 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 		}
 	}
 	ret = of_property_read_u32(card->dev->of_node, mbhc_use_usbc_detect,
-				&use_usbc_det);
+				   &use_usbc_det);
 	if (ret) {
 		dev_info(card->dev,
-			"%s: missing %s in dt node\n", __func__, mbhc_use_usbc_detect);
+				"%s: missing %s in dt node\n", __func__,
+				mbhc_use_usbc_detect);
 		mbhc->use_usbc_detect = false;
 	} else {
-		dev_info(card->dev, "%s: use_usbc_detect %d\n", __func__, use_usbc_det);
+		dev_info(card->dev, "%s: use_usbc_detect %d\n", __func__,
+				use_usbc_det);
 		if (use_usbc_det) {
 			mbhc->use_usbc_detect= true;
 		} else {
@@ -2287,14 +2240,17 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	}
 	#endif /* OPLUS_ARCH_EXTENDS */
 	#ifdef OPLUS_ARCH_EXTENDS
-	ret = of_property_read_u32(card->dev->of_node, mbhc_headset_bias_alwayon,
-				&headset_bias_alwayon);
+	ret = of_property_read_u32(card->dev->of_node,
+				   mbhc_headset_bias_alwayon,
+				   &headset_bias_alwayon);
 	if (ret) {
 		dev_info(card->dev,
-			"%s: missing %s in dt node\n", __func__, mbhc_headset_bias_alwayon);
+				"%s: missing %s in dt node\n", __func__,
+				mbhc_headset_bias_alwayon);
 		mbhc->headset_bias_alwayon = false;
 	} else {
-		dev_info(card->dev, "%s: headset_bias_alwayon %d\n", __func__, headset_bias_alwayon);
+		dev_info(card->dev, "%s: headset_bias_alwayon %d\n", __func__,
+				headset_bias_alwayon);
 		if (headset_bias_alwayon) {
 			mbhc->headset_bias_alwayon= true;
 		} else {
@@ -2324,6 +2280,7 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_component *component,
 	#ifdef OPLUS_ARCH_EXTENDS
 	mbhc->usbc_analog_status = 0;
 	#endif /* OPLUS_ARCH_EXTENDS */
+
 	if (mbhc->intr_ids == NULL) {
 		pr_err("%s: Interrupt mapping not provided\n", __func__);
 		return -EINVAL;

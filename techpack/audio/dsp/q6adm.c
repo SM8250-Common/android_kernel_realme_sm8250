@@ -266,21 +266,26 @@ int adm_set_auddet_enable_param(int port_id, uint8_t val)
 	enable = val;
 
 	for (idx = 0; idx < MAX_COPPS_PER_PORT; idx++) {
-		if (atomic_read(&this_adm.copp.id[port_idx][idx]) != RESET_COPP_ID) {
-			pr_info("%s : active copp_idx:0x%x for port_id \n",__func__, idx);
+		if (atomic_read(&this_adm.copp.id[port_idx][idx]) !=
+				RESET_COPP_ID) {
+			pr_info("%s : active copp_idx:0x%x for port_id \n",
+					__func__, idx);
 
-			if (atomic_read(&this_adm.copp.session_type[port_idx][idx]) == SESSION_TYPE_TX) {
+			if (atomic_read(&this_adm.copp.session_type[port_idx][idx])
+					== SESSION_TYPE_TX) {
 				param_hdr.instance_id = 0x8000;
 			}
 
-			if ((atomic_read(&this_adm.copp.app_type[port_idx][idx])) != 0x1113a) {
+			if ((atomic_read(&this_adm.copp.app_type[port_idx][idx]))
+					!= 0x1113a) {
 				continue;
 			}
 
-			rc = adm_pack_and_set_one_pp_param(port_id, idx, param_hdr,
-				   (uint8_t *) &enable);
+			rc = adm_pack_and_set_one_pp_param(port_id, idx,
+					param_hdr, (uint8_t *) &enable);
 			if (rc) {
-				pr_err("%s: Failed to set auddet enable, err %d\n", __func__, rc);
+				pr_err("%s: Failed to set auddet enable, err %d\n",
+						__func__, rc);
 			} else {
 				pr_err("%s: set auddet enable ok\n", __func__);
 				break;
@@ -297,7 +302,8 @@ int adm_get_all_mute_pp_param_from_port(int port_id)
 	int port_idx = adm_validate_and_get_port_index(port_id), idx;
 	int ret = 0;
 	char *param_value;
-	uint32_t param_size = (4) * sizeof(uint32_t) + sizeof(struct param_hdr_v3);
+	uint32_t param_size =
+			(4) * sizeof(uint32_t) + sizeof(struct param_hdr_v3);
 	struct param_hdr_v3 param_hdr;
 
 	if (port_idx < 0) {
@@ -316,51 +322,77 @@ int adm_get_all_mute_pp_param_from_port(int port_id)
 	param_hdr.param_size = param_size;
 
 	for (idx = 0; idx < MAX_COPPS_PER_PORT; idx++) {
-		if (atomic_read(&this_adm.copp.id[port_idx][idx]) != RESET_COPP_ID) {
-			pr_info("%s : active copp_idx:0x%x for port_id \n",__func__, idx);
+		if (atomic_read(&this_adm.copp.id[port_idx][idx]) !=
+				RESET_COPP_ID) {
+			pr_info("%s : active copp_idx:0x%x for port_id \n",
+					__func__, idx);
 
-			if (atomic_read(&this_adm.copp.session_type[port_idx][idx]) == SESSION_TYPE_TX) {
+			if (atomic_read(&this_adm.copp.session_type[port_idx][idx])
+					== SESSION_TYPE_TX) {
 				param_hdr.instance_id = 0x8000;
 			}
 
-			if ((atomic_read(&this_adm.copp.app_type[port_idx][idx])) != 0x1113a) {
+			if ((atomic_read(&this_adm.copp.app_type[port_idx][idx]))
+					!= 0x1113a) {
 				continue;
 			}
 
 			ret = adm_get_pp_params(port_id, idx,
-						ADM_CLIENT_ID_DEFAULT, NULL, &param_hdr,
-						param_value);
-			pr_info("%s : mute_detect return param, ret: %d, mutedet = %d, zd = %d, pop = %d, clip = %d\n",__func__, ret, *(uint32_t *)param_value, *((uint32_t *)param_value + 1), *((uint32_t *)param_value + 2), *((uint32_t *)param_value + 3));
-			pr_info("%s : COPP: 0x%x\n",__func__, this_adm.copp.app_type[port_idx][idx]);
+						ADM_CLIENT_ID_DEFAULT, NULL,
+						&param_hdr, param_value);
+
 			switch (atomic_read(&this_adm.copp.app_type[port_idx][idx])) {
 				case 0x11130:
-					pr_info("%s : update playback detection result\n",__func__);
-					general_playback_muted_cnt = *(uint32_t *)param_value;
-					general_playback_zd_cnt = *((uint32_t *)param_value + 1);
-					general_playback_pop_cnt = *((uint32_t *)param_value + 2);
-					general_playback_clip_cnt = *((uint32_t *)param_value + 3);
+					pr_info("%s : update playback detection result\n",
+							__func__);
+					general_playback_muted_cnt =
+						*(uint32_t *)param_value;
+					general_playback_zd_cnt =
+						*((uint32_t *)param_value + 1);
+					general_playback_pop_cnt =
+						*((uint32_t *)param_value + 2);
+					general_playback_clip_cnt =
+						*((uint32_t *)param_value + 3);
 					break;
 				case 0x11132:
-					pr_info("%s : update recording detection result\n",__func__);
-					general_record_muted_cnt = *(uint32_t *)param_value;
-					general_record_zd_cnt = *((uint32_t *)param_value + 1);
-					general_record_pop_cnt = *((uint32_t *)param_value + 2);
-					general_record_clip_cnt = *((uint32_t *)param_value + 3);
+					pr_info("%s : update recording detection result\n",
+							__func__);
+					general_record_muted_cnt =
+						*(uint32_t *)param_value;
+					general_record_zd_cnt =
+						*((uint32_t *)param_value + 1);
+					general_record_pop_cnt =
+						*((uint32_t *)param_value + 2);
+					general_record_clip_cnt =
+						*((uint32_t *)param_value + 3);
 					break;
 				case 0x1113a:
-					pr_info("%s : update VOIP detection result\n",__func__);
-					if (atomic_read(&this_adm.copp.session_type[port_idx][idx]) == SESSION_TYPE_RX) {
-						pr_info("%s : VOIP RX result\n",__func__);
-						voip_rx_muted_cnt = *(uint32_t *)param_value;
-						voip_rx_zd_cnt = *((uint32_t *)param_value + 1);
-						voip_rx_pop_cnt = *((uint32_t *)param_value + 2);
-						voip_rx_clip_cnt = *((uint32_t *)param_value + 3);
-					} else if (atomic_read(&this_adm.copp.session_type[port_idx][idx]) == SESSION_TYPE_TX) {
-						pr_info("%s : VOIP TX result\n",__func__);
-						voip_tx_muted_cnt = *(uint32_t *)param_value;
-						voip_tx_zd_cnt = *((uint32_t *)param_value + 1);
-						voip_tx_pop_cnt = *((uint32_t *)param_value + 2);
-						voip_tx_clip_cnt = *((uint32_t *)param_value + 3);
+					pr_info("%s : update VOIP detection result\n",
+							__func__);
+					if (atomic_read(&this_adm.copp.session_type[port_idx][idx])
+							== SESSION_TYPE_RX) {
+						pr_info("%s : VOIP RX result\n",
+								__func__);
+						voip_rx_muted_cnt =
+						 *(uint32_t *)param_value;
+						voip_rx_zd_cnt =
+						 *((uint32_t *)param_value + 1);
+						voip_rx_pop_cnt =
+						 *((uint32_t *)param_value + 2);
+						voip_rx_clip_cnt =
+						 *((uint32_t *)param_value + 3);
+					} else if (atomic_read(&this_adm.copp.session_type[port_idx][idx])
+							== SESSION_TYPE_TX) {
+						pr_info("%s : VOIP TX result\n",
+								__func__);
+						voip_tx_muted_cnt =
+						 *(uint32_t *)param_value;
+						voip_tx_zd_cnt =
+						 *((uint32_t *)param_value + 1);
+						voip_tx_pop_cnt =
+						 *((uint32_t *)param_value + 2);
+						voip_tx_clip_cnt =
+						 *((uint32_t *)param_value + 3);
 					}
 					break;
 				default:
@@ -3288,9 +3320,9 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 #ifdef OPLUS_FEATURE_KTV
 	if ((topology == AUDIO_TOPOLOGY_KTV)
 			&& (rate != ADM_CMD_COPP_OPEN_SAMPLE_RATE_48K)) {
-			pr_info("%s: Change rate %d to 48K for copp 0x%x",
-					__func__, rate, topology);
-			rate = 48000;
+		pr_info("%s: Change rate %d to 48K for copp 0x%x",
+				__func__, rate, topology);
+		rate = 48000;
 	}
 #endif /* OPLUS_FEATURE_KTV */
 
@@ -5734,10 +5766,9 @@ static ssize_t pb_det_read(struct file *file,
 		return -ENOMEM;
 	}
 
-	//ret = adm_get_all_mute_pp_param();
-
 	ret = snprintf(str, PAGE_SIZE, "%d %d %d %d",
-		general_playback_muted_cnt, general_playback_zd_cnt, general_playback_pop_cnt, general_playback_clip_cnt);
+			general_playback_muted_cnt, general_playback_zd_cnt,
+			general_playback_pop_cnt, general_playback_clip_cnt);
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
 
@@ -5770,10 +5801,9 @@ static ssize_t rec_det_read(struct file *file,
 		return -ENOMEM;
 	}
 
-	//ret = adm_get_all_mute_pp_param();
-
 	ret = snprintf(str, PAGE_SIZE, "%d %d %d %d",
-		general_record_muted_cnt, general_record_zd_cnt, general_record_pop_cnt, general_record_clip_cnt);
+			general_record_muted_cnt, general_record_zd_cnt,
+			general_record_pop_cnt, general_record_clip_cnt);
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
 
@@ -5806,11 +5836,11 @@ static ssize_t voip_det_read(struct file *file,
 		return -ENOMEM;
 	}
 
-	//ret = adm_get_all_mute_pp_param();
-
 	ret = snprintf(str, PAGE_SIZE, "%d %d %d %d %d %d %d %d",
-		voip_rx_muted_cnt, voip_rx_zd_cnt, voip_rx_pop_cnt, voip_rx_clip_cnt,
-		voip_tx_muted_cnt, voip_tx_zd_cnt, voip_tx_pop_cnt, voip_tx_clip_cnt);
+			voip_rx_muted_cnt, voip_rx_zd_cnt,
+			voip_rx_pop_cnt, voip_rx_clip_cnt,
+			voip_tx_muted_cnt, voip_tx_zd_cnt,
+			voip_tx_pop_cnt, voip_tx_clip_cnt);
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
 
@@ -5848,8 +5878,10 @@ static ssize_t voice_det_read(struct file *file,
 	}
 
 	ret = snprintf(str, PAGE_SIZE, "%d %d %d %d %d %d %d %d",
-		voice_rx_muted_cnt, voice_rx_zd_cnt, voice_rx_pop_cnt, voice_rx_clip_cnt,
-		voice_tx_muted_cnt, voice_tx_zd_cnt, voice_tx_pop_cnt, voice_tx_clip_cnt);
+			voice_rx_muted_cnt, voice_rx_zd_cnt,
+			voice_rx_pop_cnt, voice_rx_clip_cnt,
+			voice_tx_muted_cnt, voice_tx_zd_cnt,
+			voice_tx_pop_cnt, voice_tx_clip_cnt);
 
 	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
 
